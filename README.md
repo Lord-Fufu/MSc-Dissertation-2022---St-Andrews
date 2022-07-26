@@ -5,9 +5,9 @@ I worked on stochastic modelling of delayed chemical systems with fast environme
 More specifically I simulated the production system of a protein: Hes1.
 
 Python Files:
-- reference method from the master equation using the Gillespie algorithm
-- approximation methods using SDE Langevin equations
-- utility and post processing file
+- method from the master equation using the Gillespie algorithm (benchmark)
+- approximation methods using SDE Langevin equations (method to be validated)
+- utility and post processing
 
 Notebook:
-- file containing the plots
+- perform computation, data saves and plots.

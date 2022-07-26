@@ -2,7 +2,7 @@
 """
 Created on Thu Jun  2 17:18:59 2022
 
-@author: tonio
+@author: Antoine Moneyron
 """
 
 import numpy as np
@@ -12,7 +12,7 @@ from scipy.optimize import bisect
 import hes1_master_Antoine as master
 from numba import jit
 
-@jit(nopython=True)
+@jit
 def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one trajectory of langevin equation, scheme Euler-Maruyama
                                                       lambda_s=1,       
                                                       P_0=1,
@@ -124,7 +124,7 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
 
 
 
-@jit(nopython=True)
+@jit
 def multiple_trajectories(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,        #perform many realisations
                                                       lambda_s=1,                    #and gather inside of a table
                                                       P_0=1,
@@ -225,7 +225,7 @@ def multiple_trajectories(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,   
         Hes1 concentrations, taken at time values given in 't'.
 '''
 
-@jit(nopython=True)
+@jit
 def pool_values(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,      #pool many stationary realisations
                                                       lambda_s=1,        #inside of an array
                                                       P_0=1,
@@ -324,7 +324,7 @@ def pool_values(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,      #pool m
         
 '''
 
-@jit(nopython=True)
+@jit
 def resolve_ODE(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,P_0=1,
                                                       h=4.1,
                                                       tau=0.1,

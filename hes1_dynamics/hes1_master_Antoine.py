@@ -2,7 +2,7 @@
 """
 Created on Thu Jun  2 17:18:59 2022
 
-@author: tonio
+@author: Antoine Moneyron
 """
 
 import numpy as np
@@ -13,7 +13,7 @@ import scipy.interpolate as spinter
 from numba import jit
 
 
-@jit(nopython=True)
+@jit
 def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               P_0=1,
                                                               h=4.1,
@@ -157,7 +157,7 @@ def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
 '''
 
 
-@jit(nopython=True)
+@jit
 def multiple_trajectories(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,   
                                                               P_0=1,                        
                                                               h=4.1,
@@ -258,7 +258,7 @@ def multiple_trajectories(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,la
         Table of Hes1 concentrations, taken at time values given in 't_ref'.
 '''
 
-@jit(nopython=True)
+@jit
 def pool_values(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,            
                                                               P_0=1,                   
                                                               h=4.1,

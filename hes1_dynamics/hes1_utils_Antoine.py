@@ -2,7 +2,7 @@
 """
 Created on Thu Jun  2 17:18:59 2022
 
-@author: tonio
+@author: Antoine Moneyron
 """
 
 import numpy as np
@@ -80,7 +80,7 @@ def lna_power_spectrum(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
     sigma_m2= alpha_m/Omega*f_P + mu_m/Omega*M_stat + alpha_m**2/lambda_s*  2*(P_stat/P_0)**h* f_P**3
     sigma_p2= alpha_p/Omega*M_stat + mu_p/Omega*P_stat
     
-    omega=np.pi*np.fft.fftfreq(n_t,d=delta_t)
+    omega=2*np.pi*np.fft.fftfreq(n_t,d=delta_t)
     
     Delta2 = (  mu_m*mu_p - alpha_m*alpha_p*df_P*np.cos(omega*tau) - omega**2  )**2 +                                                                    (  omega*(mu_m+mu_p) + alpha_m*alpha_p*df_P*np.sin(omega*tau)  )**2
     num1   = (omega**2+mu_p**2)*sigma_m2 + (alpha_m*df_P)**2*sigma_p2
@@ -88,14 +88,67 @@ def lna_power_spectrum(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
             
     Sm=np.sqrt(2*np.pi)*num1 / Delta2/n_t
     Sp=np.sqrt(2*np.pi)*num2 / Delta2/n_t
-           
+        
     return omega,Sm,Sp
 
-'''Computes the power spectrum (deterministic function) in the linear noise approximation.'''
+'''Computes the power spectrum (deterministic function) in the linear noise approximation.
+   
+   Parameters
+    ----------
+    
+    T : float
+        duration of the trace in minutes
+        
+    delta_t : float
+        time step of the time mesh
+    
+    P_0 : float
+        repression threshold, Hes autorepresses itself if its copynumber is larger
+        than this repression threshold. Corresponds to P0 in the Monk paper
+
+    h : float
+        exponent in the hill function regulating the Hes autorepression. Small values
+        make the response more shallow, whereas large values will lead to a switch-like
+        response if the protein concentration exceeds the repression threshold
+        
+    lambda_s :float
+        rate at which the environment switches. Higher values make it switch more often and limit switching induced diffusion.
+        Also increase computation time.
+        
+    Omega : int
+        size of the system. Higher values reduce demographic diffusion. Also increase (significantly) computation time
+
+    mu_m : float
+        Rate at which mRNA is degraded, in copynumber per minute
+
+    mu_p : float
+        Rate at which Hes1 protein is degraded, in copynumber per minute
+
+    alpha_m : float
+        Rate at which mRNA is described, in copynumber per minute, if there is no Hes
+        autorepression. If the protein copy number is close to or exceeds the repression threshold
+        the actual transcription rate will be lower
+
+    alpha_p : float
+        rate at protein translation, in Hes copy number per mRNA copy number and minute.
+    
+    Returns
+    -------
+
+    omega : 1D ndarray of shape int(T/delta_t)
+        Angular frequencies associated with the time mesh i.e spanning [0,2 pi /delta_t] with step 2 pi /T
+        
+    Sm : 1D ndarray of shape int(T/delta_t)
+        LNA power spectrum for mRNA concentrations, taken at frequency values given in 'freq'.
+        
+    Sp : 1D ndarray of shape int(T/delta_t)
+        LNA power spectrum for Hes1 concentrations, taken at frequency values given in 'freq'.
+
+'''
 
 
 
-@jit(nopython=True)
+@jit
 def compute_power_spectrum(t,table):
     n_iter,n_t=np.shape(table)
     delta_t=t[1]-t[0]
@@ -106,10 +159,30 @@ def compute_power_spectrum(t,table):
     
     return omega,power_spectrum
 
-'''Computes the mean power spectrum from multiple trajectories.'''
+'''Computes the mean power spectrum of a quantity (typically, a chemical concentration) from multiple trajectories.
+   
+   Parameters
+    ----------
+   
+   t : 1D ndarray of shape int(T/delta_t)
+       Time mesh at which the values (typically, concentrations) in table are given.
+   
+   table : 2D ndarray with int(T/delta_t) columns
+       Values (typically, concentrations) at the times given in t.
+       
+   Returns
+    -------
+
+    omega : 1D ndarray of shape int(T/delta_t)
+        Angular frequencies associated with the time mesh i.e spanning [0,2 pi / delta_t] with step 2 pi /T
+        
+    power_spectrum : 1D ndarray of shape int(T/delta_t)
+        Power at angular frequencies given in omega.
+        
+'''
 
 
-@jit(nopython=True)
+@jit
 def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
                                                       lambda_s=1,        
                                                       P_0=100,
@@ -171,4 +244,64 @@ def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0
     
     return output
 
-'''Computes mean, std and power spectrum all at once.'''
+'''Computes mean, std and power spectrum all at once.
+   
+   Parameters
+    ----------
+    
+    n_iter : int
+        number of realisations Hes1 that are run
+    
+    T : float
+        duration of the trace in minutes
+        
+    delta_t : float
+        time step of the time mesh
+
+    P_0 : float
+        repression threshold, Hes autorepresses itself if its copynumber is larger
+        than this repression threshold. Corresponds to P0 in the Monk paper
+
+    h : float
+        exponent in the hill function regulating the Hes autorepression. Small values
+        make the response more shallow, whereas large values will lead to a switch-like
+        response if the protein concentration exceeds the repression threshold
+        
+    lambda_s :float
+        rate at which the environment switches. Higher values make it switch more often and limit switching induced diffusion.
+        Also increase computation time.
+        
+    Omega : int
+        size of the system. Higher values reduce demographic diffusion. Also increase (significantly) computation time
+
+    mu_m : float
+        Rate at which mRNA is degraded, in copynumber per minute
+
+    mu_p : float
+        Rate at which Hes1 protein is degraded, in copynumber per minute
+
+    alpha_m : float
+        Rate at which mRNA is described, in copynumber per minute, if there is no Hes
+        autorepression. If the protein copy number is close to or exceeds the repression threshold
+        the actual transcription rate will be lower
+
+    alpha_p : float
+        rate at protein translation, in Hes copy number per mRNA copy number and minute,
+
+    tau : float
+        delay of the repression response to Hes protein in minutes. The rate of mRNA transcription depends
+        on the protein copy number at this amount of time in the past.
+        
+    M_init : int
+        initial mRNA concentration
+        
+    P_init : int
+        initial Hes1 concentration
+       
+   Returns
+    -------
+
+    output : dictionary
+        Dictionary with means, stds, power spectra, time mesh and associated angular frequencies.
+
+'''

@@ -80,16 +80,17 @@ def lna_power_spectrum(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
     sigma_m2= alpha_m/Omega*f_P + mu_m/Omega*M_stat + alpha_m**2/lambda_s*  2*(P_stat/P_0)**h* f_P**3
     sigma_p2= alpha_p/Omega*M_stat + mu_p/Omega*P_stat
     
-    omega=2*np.pi*np.fft.fftfreq(n_t,d=delta_t)
+    freq=np.fft.fftfreq(n_t,d=delta_t)
+    omega=2*np.pi*freq
     
     Delta2 = (  mu_m*mu_p - alpha_m*alpha_p*df_P*np.cos(omega*tau) - omega**2  )**2 +                                                                    (  omega*(mu_m+mu_p) + alpha_m*alpha_p*df_P*np.sin(omega*tau)  )**2
     num1   = (omega**2+mu_p**2)*sigma_m2 + (alpha_m*df_P)**2*sigma_p2
     num2   =  alpha_p**2*sigma_m2 +  (omega**2 + mu_m**2)*sigma_p2
             
-    Sm=np.sqrt(2*np.pi)*num1 / Delta2/n_t
-    Sp=np.sqrt(2*np.pi)*num2 / Delta2/n_t
+    Sm=num1 / Delta2
+    Sp=num2 / Delta2
         
-    return omega,Sm,Sp
+    return freq,Sm,Sp
 
 '''Computes the power spectrum (deterministic function) in the linear noise approximation.
    
@@ -153,11 +154,11 @@ def compute_power_spectrum(t,table):
     n_iter,n_t=np.shape(table)
     delta_t=t[1]-t[0]
     T=t[-1]-t[0]
-    omega=2*np.pi*np.fft.fftfreq(n_t,d=delta_t)
+    freq=np.fft.fftfreq(n_t,d=delta_t)
     
-    power_spectrum=delta_t/T*np.mean( abs(np.fft.fft(table))**2, axis=0 )*1/n_t
+    power_spectrum=np.mean( abs(np.fft.fft(table))**2, axis=0 )
     
-    return omega,power_spectrum
+    return freq,power_spectrum
 
 '''Computes the mean power spectrum of a quantity (typically, a chemical concentration) from multiple trajectories.
    

@@ -24,8 +24,8 @@ def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               Omega=1,
                                                               T=1000):
     t=[0] #list of times when a reaction is started or ended
-    P=[P_init] #list of Hes1 concentrations
-    M=[M_init] #list of mRNA concentrations
+    P=[P_init] #list of Hes1 molecule numbers
+    M=[M_init] #list of mRNA molecule numbers
     sigma=[sigma_init] #list of environment configuration
     d_react=[] #list (queue) of end times of delayed reactions
     
@@ -135,10 +135,10 @@ def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
         on the protein copy number at this amount of time in the past.
         
     M_init : int
-        initial mRNA concentration
+        initial mRNA molecule number
         
     P_init : int
-        initial Hes1 concentration
+        initial Hes1 molecule number
         
     sigma_init : bool
         initial environment configuration
@@ -239,10 +239,10 @@ def multiple_trajectories(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,la
         on the protein copy number at this amount of time in the past.
         
     M_init : int
-        initial mRNA concentration
+        initial mRNA molecule number
         
     P_init : int
-        initial Hes1 concentration
+        initial Hes1 molecule number
 
 
     Returns
@@ -343,10 +343,10 @@ def pool_values(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
         on the protein copy number at this amount of time in the past.
         
     M_init : int
-        initial mRNA concentration
+        initial mRNA molecule number
         
     P_init : int
-        initial Hes1 concentration
+        initial Hes1 molecule number
 
 
     Returns

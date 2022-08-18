@@ -103,10 +103,10 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
         on the protein copy number at this amount of time in the past.
         
     M_init : int
-        initial mRNA concentration
+        initial mRNA molecule number
         
     P_init : int
-        initial Hes1 concentration
+        initial Hes1 molecule number
 
 
     Returns
@@ -206,10 +206,10 @@ def multiple_trajectories(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,   
         on the protein copy number at this amount of time in the past.
         
     M_init : int
-        initial mRNA concentration
+        initial mRNA molecule number
         
     P_init : int
-        initial Hes1 concentration
+        initial Hes1 molecule number
 
 
     Returns
@@ -307,10 +307,10 @@ def pool_values(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,      #pool m
         on the protein copy number at this amount of time in the past.
         
     M_init : int
-        initial mRNA concentration
+        initial mRNA molecule number
         
     P_init : int
-        initial Hes1 concentration
+        initial Hes1 molecule number
 
 
     Returns
@@ -389,10 +389,10 @@ def resolve_ODE(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,P_0=1,
         on the protein copy number at this amount of time in the past.
         
     M_init : int
-        initial mRNA concentration
+        initial mRNA molecule number
         
     P_init : int
-        initial Hes1 concentration
+        initial Hes1 molecule number
 
 
     Returns

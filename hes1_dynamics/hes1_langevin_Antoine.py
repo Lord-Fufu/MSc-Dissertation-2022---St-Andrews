@@ -30,8 +30,8 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
     P=np.zeros(n_t)                #array of Hes1 concentrations
     M=np.zeros(n_t)                #array of mRNA concentrations
 
-    M[0]=M_init/Omega
-    P[0]=P_init/Omega    
+    M[0]=M_init
+    P[0]=P_init    
     
     for i in range(n_t-1):
         
@@ -39,7 +39,10 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
         mean_switch=0
         var_switch=0
         
-        if i>= k_delay:
+        if i<k_delay:
+            hill_function=1/(1+(P_init/P_0)**h)
+            var_switch=(alpha_m**2/lambda_s)*2*(P_init/P_0)**h*hill_function**3
+        elif i>= k_delay:
             hill_function=1/(1+(P[i-k_delay]/P_0)**h)                                    #value of the hill function f(P(t-tau))
             var_switch=(alpha_m**2/lambda_s)*2*(P[i-k_delay]/P_0)**h*hill_function**3    #value of the switching induced diffusion
            
@@ -53,7 +56,7 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
         
         M[i+1]=abs(M[i] + mean_increment_M*delta_t + std_increment_M*w_m)  #reflective boundary conditions
         P[i+1]=abs(P[i] + mean_increment_P*delta_t + std_increment_P*w_p)
-
+            
     return t,M,P
 
 

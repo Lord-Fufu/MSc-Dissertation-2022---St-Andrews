@@ -358,3 +358,124 @@ def pool_values(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
     table_P : 2D ndarray of shape n_iter * (int(T/delta_t)//2)
         Table of stationary Hes1 concentrations.
 '''
+
+@jit
+def one_trajectory_noSwitchNoise( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,
+                                                              P_0=1,
+                                                              h=4.1,
+                                                              tau=0.1,
+                                                              P_init=10,
+                                                              M_init=20,
+                                                              sigma_init=1,
+                                                              Omega=1,
+                                                              T=1000):
+    t=[0] #list of times when a reaction is started or ended
+    P=[P_init] #list of Hes1 molecule numbers
+    M=[M_init] #list of mRNA molecule numbers
+    d_react=[] #list (queue) of end times of delayed reactions
+    
+    n_p0=P_0*Omega
+    
+    def perform_reaction(a_0,t,M,P):
+        rr=rd.uniform(0,1)
+        a_1=mu_m*M[-1]
+        a_2=mu_p*P[-1]
+        a_3=alpha_p*M[-1]
+        a_4=alpha_m*Omega/(1+(P[-1]/n_p0)**h)
+
+        if rr<a_1/a_0:                      #destruction of M
+            M.append(M[-1]-1)
+            P.append(P[-1])
+        elif rr < (a_1+a_2)/a_0:            #destruction of P
+            M.append(M[-1])
+            P.append(P[-1]-1)
+        elif rr < (a_1+a_2+a_3)/a_0:        #creation of P
+            M.append(M[-1])
+            P.append(P[-1]+1)
+        elif rr < (a_1+a_2+a_3+a_4)/a_0:    #plan delayed reaction for creation of M 
+            d_react.append(t[-1]+tau)
+            M.append(M[-1])
+            P.append(P[-1])
+    
+    def run_master():
+        while t[-1]<T:
+            a_0=mu_m*M[-1]+mu_p*P[-1]+alpha_p*M[-1]+alpha_m*Omega/(1+(P[-1]/n_p0)**h)    #total propensity
+            
+            r=rd.uniform(0,1)                                  #generate delta via inverse transform method (exponential distribution)
+            delta=-np.log(r)/a_0
+
+            if len(d_react)!=0 and d_react[0]<=t[-1]+delta:    #if a delayed reaction is planned, creation of M
+                t.append(d_react[0])
+                M.append(M[-1]+1)
+                P.append(P[-1])
+
+                del d_react[0]                               #then remove the delayed reaction
+
+            else:                                            #else perform a new reaction
+                t.append(t[-1]+delta)
+                perform_reaction(a_0,t,M,P)
+
+    run_master()
+    
+    times=np.array(t)
+    mRNA=np.array(M)/Omega
+    Hes1=np.array(P)/Omega
+    
+    return times,mRNA,Hes1
+
+'''Generate one trace of the Hes1 model from the master equation (Gillespie algorithm) with effective average rate (large lambda_s).
+
+    Parameters
+    ----------
+
+    T : float
+        duration of the trace in minutes
+
+    P_0 : float
+        repression threshold, Hes autorepresses itself if its copynumber is larger
+        than this repression threshold. Corresponds to P0 in the Monk paper
+
+    h : float
+        exponent in the hill function regulating the Hes autorepression. Small values
+        make the response more shallow, whereas large values will lead to a switch-like
+        response if the protein concentration exceeds the repression threshold
+        
+    Omega : int
+        size of the system. Higher values reduce demographic diffusion. Also increase (significantly) computation time
+
+    mu_m : float
+        Rate at which mRNA is degraded, in copynumber per minute
+
+    mu_p : float
+        Rate at which Hes1 protein is degraded, in copynumber per minute
+
+    alpha_m : float
+        Rate at which mRNA is described, in copynumber per minute, if there is no Hes
+        autorepression. If the protein copy number is close to or exceeds the repression threshold
+        the actual transcription rate will be lower
+
+    alpha_p : float
+        rate at protein translation, in Hes copy number per mRNA copy number and minute,
+
+    tau : float
+        delay of the repression response to Hes protein in minutes. The rate of mRNA transcription depends
+        on the protein copy number at this amount of time in the past.
+        
+    M_init : int
+        initial mRNA molecule number
+        
+    P_init : int
+        initial Hes1 molecule number
+        
+    Returns
+    -------
+
+    times : 1D ndarray
+        Times at which the system-environment changes, i.e one reaction occurs.
+        
+    mRNA : 1D ndarray
+        mRNA concentration taken at time values given in 'times'.
+        
+    Hes1 : 1D ndarray
+        Hes1 concentration taken at time values given in 'times'.
+'''

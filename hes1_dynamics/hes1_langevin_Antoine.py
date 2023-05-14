@@ -41,7 +41,7 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
         
         if i<k_delay:
             hill_function=1/(1+(P_init/P_0)**h)
-            var_switch=(alpha_m**2/lambda_s)*2*(P_init/P_0)**h*hill_function**3
+            var_switch=(alpha_m**2/lambda_s)*(P_init/P_0)**h*hill_function**3
         elif i>= k_delay:
             hill_function=1/(1+(P[i-k_delay]/P_0)**h)                                    #value of the hill function f(P(t-tau))
             var_switch=(alpha_m**2/lambda_s)*2*(P[i-k_delay]/P_0)**h*hill_function**3    #value of the switching induced diffusion

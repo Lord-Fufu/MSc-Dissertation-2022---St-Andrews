@@ -306,3 +306,145 @@ def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0
         Dictionary with means, stds, power spectra, time mesh and associated angular frequencies.
 
 '''
+
+
+def generateIncrements( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
+                                                              P_0=1,
+                                                              h=4.1,
+                                                              tau=0.1,
+                                                              P_init=10,
+                                                              M_init=20,
+                                                              sigma_init=1,
+                                                              Omega=1,
+                                                              T=1000,
+                                                              incr_step=1,
+                                                              N_data=1000):
+    t=[0] #list of times when a reaction is started or ended
+    P=[P_init] #list of Hes1 molecule numbers
+    M=[M_init] #list of mRNA molecule numbers
+    sigma=[sigma_init] #list of environment configuration
+    d_react=[] #list (queue) of end times of delayed reactions
+    
+    def perform_reaction(a_0,t,M,P,sigma):
+        rr=rd.uniform(0,1)
+        a_1=mu_m*M[-1]
+        a_2=mu_p*P[-1]
+        a_3=alpha_p*M[-1]
+        a_4=alpha_m*Omega*sigma[-1]
+
+        if rr<a_1/a_0:                      #destruction of M
+            M.append(M[-1]-1)
+            P.append(P[-1])
+            sigma.append(sigma[-1])
+        elif rr < (a_1+a_2)/a_0:            #destruction of P
+            M.append(M[-1])
+            P.append(P[-1]-1)
+            sigma.append(sigma[-1])
+        elif rr < (a_1+a_2+a_3)/a_0:        #creation of P
+            M.append(M[-1])
+            P.append(P[-1]+1)
+            sigma.append(sigma[-1])
+        elif rr < (a_1+a_2+a_3+a_4)/a_0:    #plan delayed reaction for creation of M 
+            d_react.append(t[-1]+tau)
+            M.append(M[-1])
+            P.append(P[-1])
+            sigma.append(sigma[-1])
+        else:                               #switch environment
+            M.append(M[-1])
+            P.append(P[-1])
+            sigma.append(1-sigma[-1])
+    
+    
+    def run_master():
+        while t[-1]<T:
+            a_0=mu_m*M[-1]+mu_p*P[-1]+alpha_p*M[-1]+sigma[-1]*alpha_m*Omega    #total propensity
+            
+            n_p0=P_0*Omega
+            if sigma[-1]==1:                                          #add switching environment term
+                a_0+=lambda_s*(P[-1]/n_p0)**h
+            else:
+                a_0+=lambda_s   
+
+            r=rd.uniform(0,1)                                  #generate delta via inverse transform method (exponential distribution)
+            delta=-np.log(r)/a_0
+
+            if len(d_react)!=0 and d_react[0]<=t[-1]+delta:    #if a delayed reaction is planned, creation of M
+                t.append(d_react[0])
+                M.append(M[-1]+1)
+                P.append(P[-1])
+                sigma.append(sigma[-1])
+
+                del d_react[0]                               #then remove the delayed reaction
+
+            else:                                            #else perform a new reaction
+                t.append(t[-1]+delta)
+                perform_reaction(a_0,t,M,P,sigma)
+
+    run_master()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    data_incr_M = np.zeros(N_data)
+    data_incr_P = np.zeros(N_data)
+    
+    M_ref=M[-1]
+    P_ref=P[-1]
+    
+    for k in range(N_data):
+        t_temp=[t[-1]]
+        M_temp=[M_ref]
+        P_temp=[P_ref]
+        sigma_temp = [sigma[-1]]
+        d_react_temp = d_react.copy()
+        while t_temp[-1]<T+incr_step:
+            a_0=mu_m*M_temp[-1]+mu_p*P_temp[-1]+alpha_p*M_temp[-1]+sigma_temp[-1]*alpha_m*Omega    #total propensity
+            
+            n_p0=P_0*Omega
+            if sigma_temp[-1]==1:                                          #add switching environment term
+                a_0+=lambda_s*(P_temp[-1]/n_p0)**h
+            else:
+                a_0+=lambda_s   
+
+            r=rd.uniform(0,1)                                  #generate delta via inverse transform method (exponential distribution)
+            delta=-np.log(r)/a_0
+
+            if len(d_react_temp)!=0 and d_react_temp[0]<=t_temp[-1]+delta:    #if a delayed reaction is planned, creation of M
+                t_temp.append(d_react_temp[0])
+                M_temp.append(M_temp[-1]+1)
+                P_temp.append(P_temp[-1])
+                sigma_temp.append(sigma_temp[-1])
+
+                del d_react_temp[0]                               #then remove the delayed reaction
+
+            else:                                            #else perform a new reaction
+                t_temp.append(t_temp[-1]+delta)
+                perform_reaction(a_0,t_temp,M_temp,P_temp,sigma_temp)
+        
+        data_incr_M[k] = (M_temp[-1]-M_ref)/Omega
+        data_incr_P[k] = (P_temp[-1]-P_ref)/Omega
+        
+        
+        
+        
+        
+        
+        c=-1
+        while t[c] > t[-1] - tau:
+            c += (-1)
+            
+        hill_function=1/(1+(P[c]/P_0)**h)                                    #value of the hill function f(P(t-tau))
+        var_switch=(alpha_m**2/lambda_s)*2*(P[c]/P_0)**h*hill_function**3    #value of the switching induced diffusion
+        
+        mean_increment_M=alpha_m*hill_function - mu_m*M_ref
+        std_increment_M =np.sqrt(alpha_m/Omega*hill_function + mu_m/Omega*M_ref + var_switch)
+        mean_increment_P=alpha_p*M_ref - mu_p*P_ref
+        std_increment_P =np.sqrt(alpha_p/Omega*M_ref + mu_p/Omega*P_ref)
+                
+    return M_ref, P_ref, data_incr_M,data_incr_P, mean_increment_M, std_increment_M, mean_increment_P, std_increment_P
+

@@ -14,9 +14,8 @@ import hes1_langevin_Antoine as langevin
 import hes1_master_Antoine as master
 from numba import jit
 
-def resolve_stationary_state(alpha_m,mu_m,alpha_p,mu_p,h,P_0):             #find stationary state for M and P
-    
-    def optim_func(x):                                                     #found from stat ODE
+def resolve_stationary_state(alpha_m,mu_m,alpha_p,mu_p,h,P_0):             #find stationary state for M and P found from stationary ODE
+    def optim_func(x):                                                     
         return (alpha_m/mu_m)*1/(1+(x/P_0)**h) - mu_p/alpha_p*x            #alpha_m*f(P) - mu_m*M = 0 and alpha_p*M - mu_p*P =0
 
     p_stat=bisect(optim_func,0,10**6)                                  
@@ -75,7 +74,6 @@ def lna_power_spectrum(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
     
     f_P=1/(1+(P_stat/P_0)**h)
     df_P=-h/P_0*(P_stat/P_0)**(h-1)/(1+(P_stat/P_0)**h)**2
-    K=-alpha_m/lambda_s*df_P*f_P
     
     sigma_m2= alpha_m/Omega*f_P + mu_m/Omega*M_stat + alpha_m**2/lambda_s*  2*(P_stat/P_0)**h* f_P**3
     sigma_p2= alpha_p/Omega*M_stat + mu_p/Omega*P_stat
@@ -197,8 +195,7 @@ def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0
     
     n_t=int(T/delta_t)
     n_stat=n_t//2
-
-    
+        
     t_ref,table_Mm,table_Pm=master.multiple_trajectories(n_iter=n_iter,alpha_m=alpha_m, alpha_p=alpha_p,mu_m=mu_m,
                                                               mu_p=mu_p,lambda_s=lambda_s,
                                                               P_0=P_0,
@@ -211,6 +208,7 @@ def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0
                                                               delta_t=delta_t,
                                                               Omega=Omega)
     
+    
     _,table_Ml,table_Pl=langevin.multiple_trajectories(n_iter=n_iter,alpha_m=alpha_m,alpha_p=alpha_p,mu_m=mu_m,mu_p=mu_p,
                                                       lambda_s=lambda_s,
                                                       P_0=P_0,
@@ -220,32 +218,46 @@ def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0
                                                       M_init=M_init,
                                                       T=T,
                                                       delta_t=delta_t,
-                                                      Omega=Omega)    
+                                                      Omega=Omega)
+    
+    
+    _,table_Mlna,table_Plna=langevin.multiple_trajectories_LNA(n_iter=n_iter, alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
+                                                      lambda_s=lambda_s,
+                                                      P_0=P_0,
+                                                      h=h,
+                                                      tau=tau,
+                                                      T=T,
+                                                      delta_t=delta_t,
+                                                      Omega=Omega)
     
     
     omega,power_spectrum_Mm=compute_power_spectrum(t_ref[n_stat:],table_Mm[:,n_stat:])
     _,power_spectrum_Ml=compute_power_spectrum(t_ref[n_stat:],table_Ml[:,n_stat:])
+    _,power_spectrum_Mlna=compute_power_spectrum(t_ref[n_stat:],table_Mlna[:,n_stat:])
     
     _,power_spectrum_Pm=compute_power_spectrum(t_ref[n_stat:],table_Pm[:,n_stat:])
     _,power_spectrum_Pl=compute_power_spectrum(t_ref[n_stat:],table_Pl[:,n_stat:])
+    _,power_spectrum_Plna=compute_power_spectrum(t_ref[n_stat:],table_Plna[:,n_stat:])
     
     pool_Mm=np.reshape(table_Mm[:,n_stat:], n_iter*(n_t-n_stat))   #pool everything together
-    pool_Ml=np.reshape(table_Ml[:,n_stat:], n_iter*(n_t-n_stat))   #pool everything together
+    pool_Ml=np.reshape(table_Ml[:,n_stat:], n_iter*(n_t-n_stat))   
+    pool_Mlna=np.reshape(table_Mlna[:,n_stat:], n_iter*(n_t-n_stat))   
     
     pool_Pm=np.reshape(table_Pm[:,n_stat:], n_iter*(n_t-n_stat))
     pool_Pl=np.reshape(table_Pl[:,n_stat:], n_iter*(n_t-n_stat))
+    pool_Plna=np.reshape(table_Plna[:,n_stat:], n_iter*(n_t-n_stat))
     
-    output={"std Mm": np.std(pool_Mm),"std Ml": np.std(pool_Ml),
-           "mean Mm": np.mean(pool_Mm), "mean Ml": np.mean(pool_Ml),
-           "power spectrum Mm": power_spectrum_Mm, "power spectrum Ml": power_spectrum_Ml,
-           "std Pm": np.std(pool_Pm),"std Pl": np.std(pool_Pl),
-           "mean Pm": np.mean(pool_Pm), "mean Pl": np.mean(pool_Pl),
-           "power spectrum Pm": power_spectrum_Pm, "power spectrum Pl": power_spectrum_Pl,
+    output={"std Mm": np.std(pool_Mm),"std Ml": np.std(pool_Ml), "std Mlna": np.std(pool_Mlna),
+           "mean Mm": np.mean(pool_Mm), "mean Ml": np.mean(pool_Ml), "mean Mlna": np.mean(pool_Mlna),
+           "power spectrum Mm": power_spectrum_Mm, "power spectrum Ml": power_spectrum_Ml, "power spectrum Mlna": power_spectrum_Mlna,
+           "std Pm": np.std(pool_Pm),"std Pl": np.std(pool_Pl), "std Plna": np.std(pool_Plna),
+           "mean Pm": np.mean(pool_Pm), "mean Pl": np.mean(pool_Pl), "mean Plna": np.mean(pool_Plna),
+           "power spectrum Pm": power_spectrum_Pm, "power spectrum Pl": power_spectrum_Pl, "power spectrum Plna": power_spectrum_Plna,
            "times":t_ref, "frequencies":omega}
     
     return output
 
-'''Computes mean, std and power spectrum all at once.
+'''Computes means, stds and power spectra all at once.
    
    Parameters
     ----------
@@ -307,7 +319,7 @@ def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0
 
 '''
 
-
+@jit
 def generateIncrements( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               P_0=1,
                                                               h=4.1,

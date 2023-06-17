@@ -129,7 +129,7 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
 
 @jit
 def multiple_trajectories(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,        #perform many realisations
-                                                      lambda_s=1,                    #and gather inside of a table
+                                                      lambda_s=1,                    #and gather in a table
                                                       P_0=1,
                                                       h=4.1,
                                                       tau=0.1,
@@ -153,7 +153,7 @@ def multiple_trajectories(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,   
                                                       M_init=M_init,
                                                       T=T,
                                                       delta_t=delta_t,
-                                                      Omega=Omega)           #run one trajectory multiple times
+                                                      Omega=Omega)           #run one_trajectory multiple times
         
         table_M[k,:]=M    #gather independently of time
         table_P[k,:]=P
@@ -408,3 +408,156 @@ def resolve_ODE(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,P_0=1,
         Table of stationary Hes1 concentrations.
         
 '''
+
+
+
+def resolve_stationary_state(alpha_m,mu_m,alpha_p,mu_p,h,P_0):             #find stationary state for M and P found from stationary ODE
+    def optim_func(x):                                                     
+        return (alpha_m/mu_m)*1/(1+(x/P_0)**h) - mu_p/alpha_p*x            #alpha_m*f(P) - mu_m*M = 0 and alpha_p*M - mu_p*P =0
+
+    p_stat=bisect(optim_func,0,10**6)                                  
+    m_stat=mu_p/alpha_p*p_stat
+    return m_stat,p_stat
+
+
+@jit
+def one_trajectory_LNA(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #one trajectory of langevin equation, scheme Euler-Maruyama
+                                                      lambda_s=1,       
+                                                      P_0=1,
+                                                      h=4.1,
+                                                      tau=0.1,
+                                                      T=1000,
+                                                      delta_t=1,
+                                                      Omega=1):
+    
+    n_t=int(T/delta_t)             #number of points in the time mesh
+    k_delay=round(tau/delta_t)     #delayed shifting on indices
+    t=np.linspace(0,T,n_t)         #time mesh
+    P=np.zeros(n_t)                #array of Hes1 concentrations
+    M=np.zeros(n_t)                #array of mRNA concentrations
+
+    M[0]=0
+    P[0]=0    
+    
+    M_stat,P_stat = resolve_stationary_state(alpha_m,mu_m,alpha_p,mu_p,h,P_0)
+    df_P=-h/P_0*(P_stat/P_0)**(h-1)/(1+(P_stat/P_0)**h)**2
+    
+    for i in range(n_t-1):
+        
+        if i<k_delay:
+            mean_increment_M=alpha_m*df_P*P[0] - mu_m*M[i]
+            mean_increment_P=alpha_p*M[i] - mu_p*P[i]
+        elif i>= k_delay:
+            mean_increment_M=alpha_m*df_P*P[i-k_delay] - mu_m*M[i]                  #increment in LNA
+            mean_increment_P=alpha_p*M[i] - mu_p*P[i]
+        
+        hill_function_stat=1/(1+(P_stat/P_0)**h)
+        var_switch=(alpha_m**2/lambda_s)*2*(P_stat/P_0)**h*hill_function_stat**3    #value of the switching induced diffusion
+           
+        w_m=np.random.normal(0,np.sqrt(delta_t))
+        w_p=np.random.normal(0,np.sqrt(delta_t))
+        
+        std_increment_M =np.sqrt(alpha_m/Omega*hill_function_stat + mu_m/Omega*M_stat + var_switch)
+        std_increment_P =np.sqrt(alpha_p/Omega*M_stat + mu_p/Omega*P_stat)
+        
+        M[i+1]=abs(M[i] + mean_increment_M*delta_t + std_increment_M*w_m + M_stat) - M_stat  #reflective boundary condition
+        P[i+1]=abs(P[i] + mean_increment_P*delta_t + std_increment_P*w_p + P_stat) - P_stat
+    
+    M = M + M_stat*np.ones(n_t)
+    P = P + P_stat*np.ones(n_t)
+    
+    return t,M,P
+
+'''Generate one trace of the LNA Hes1 model.
+
+    Parameters
+    ----------
+    
+    T : float
+        duration of the trace in minutes
+        
+    delta_t : float
+        time step of the time mesh
+
+    P_0 : float
+        repression threshold, Hes autorepresses itself if its copynumber is larger
+        than this repression threshold. Corresponds to P0 in the Monk paper
+
+    h : float
+        exponent in the hill function regulating the Hes autorepression. Small values
+        make the response more shallow, whereas large values will lead to a switch-like
+        response if the protein concentration exceeds the repression threshold
+        
+    lambda_s :float
+        rate at which the environment switches. Higher values make it switch more often and limit switching induced diffusion.
+        Also increase computation time.
+        
+    Omega : int
+        size of the system. Higher values reduce demographic diffusion. Also increase (significantly) computation time
+
+    mu_m : float
+        Rate at which mRNA is degraded, in copynumber per minute
+
+    mu_p : float
+        Rate at which Hes1 protein is degraded, in copynumber per minute
+
+    alpha_m : float
+        Rate at which mRNA is described, in copynumber per minute, if there is no Hes
+        autorepression. If the protein copy number is close to or exceeds the repression threshold
+        the actual transcription rate will be lower
+
+    alpha_p : float
+        rate at protein translation, in Hes copy number per mRNA copy number and minute,
+
+    tau : float
+        delay of the repression response to Hes protein in minutes. The rate of mRNA transcription depends
+        on the protein copy number at this amount of time in the past.
+        
+    M_init : int
+        initial mRNA molecule number
+        
+    P_init : int
+        initial Hes1 molecule number
+
+
+    Returns
+    -------
+
+    t : 1D ndarray of shape int(T/delta_t)
+        Times in the time mesh.
+        
+    M : 2D ndarray of shape n_iter * int(T/delta_t)
+        mRNA concentrations, taken at time values given in 't'.
+        
+    P : 2D ndarray of shape n_iter * int(T/delta_t)
+        Hes1 concentrations, taken at time values given in 't'.
+'''
+
+@jit
+def multiple_trajectories_LNA(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,        #perform many realisations
+                                                      lambda_s=1,                    #and gather in a table
+                                                      P_0=1,
+                                                      h=4.1,
+                                                      tau=0.1,
+                                                      T=1000,
+                                                      delta_t=1,
+                                                      Omega=1):    
+    n_t=int(T/delta_t)
+    
+    table_M=np.zeros((n_iter,n_t))
+    table_P=np.zeros((n_iter,n_t))
+    
+    for k in range(n_iter):
+        t,M,P=one_trajectory_LNA(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
+                                                      lambda_s=lambda_s,
+                                                      P_0=P_0,
+                                                      h=h,
+                                                      tau=tau,
+                                                      T=T,
+                                                      delta_t=delta_t,
+                                                      Omega=Omega)           #run one_trajectory multiple times
+        
+        table_M[k,:]=M    #gather independently of time
+        table_P[k,:]=P
+    
+    return t,table_M,table_P

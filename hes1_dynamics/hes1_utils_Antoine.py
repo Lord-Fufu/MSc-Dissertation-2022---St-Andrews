@@ -145,6 +145,16 @@ def lna_power_spectrum(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
 
 '''
 
+@jit
+def compute_power_spectrum_traj(t,traj):
+    n_t=np.shape(traj)
+    delta_t=t[1]-t[0]
+    T=t[-1]-t[0]
+    
+    power_spectrum=abs(np.fft.fft(traj))**2
+    
+    return power_spectrum
+
 
 
 @jit
@@ -182,22 +192,40 @@ def compute_power_spectrum(t,table):
 
 
 @jit
-def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
+def compute_fourier_transform_mean_and_std(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
                                                       lambda_s=1,        
                                                       P_0=100,
                                                       h=4.1,
                                                       tau=0.1,
-                                                      P_init=10,
-                                                      M_init=20,
+                                                      P_init=0,
+                                                      M_init=0,
                                                       T=1000,
                                                       delta_t=1,
                                                       Omega=1):    
     
     n_t=int(T/delta_t)
     n_stat=n_t//2
-        
-    t_ref,table_Mm,table_Pm=master.multiple_trajectories(n_iter=n_iter,alpha_m=alpha_m, alpha_p=alpha_p,mu_m=mu_m,
-                                                              mu_p=mu_p,lambda_s=lambda_s,
+    
+    t_ref=np.arange(0,T,delta_t)
+    freq=np.fft.fftfreq(n_t-n_stat,d=delta_t)
+    
+    var_Mm, var_Ml, var_Mlna = np.zeros(n_iter),np.zeros(n_iter),np.zeros(n_iter)
+    var_Pm, var_Pl, var_Plna = np.zeros(n_iter),np.zeros(n_iter),np.zeros(n_iter)
+    mean_Mm, mean_Ml, mean_Mlna = np.zeros(n_iter),np.zeros(n_iter),np.zeros(n_iter)
+    mean_Pm, mean_Pl, mean_Plna = np.zeros(n_iter),np.zeros(n_iter),np.zeros(n_iter)
+    
+    power_spectrum_Mm=np.zeros(n_t//2)
+    power_spectrum_Ml=np.zeros(n_t//2)
+    power_spectrum_Mlna=np.zeros(n_t//2)
+    
+    power_spectrum_Pm=np.zeros(n_t//2)
+    power_spectrum_Pl=np.zeros(n_t//2)
+    power_spectrum_Plna=np.zeros(n_t//2)
+    
+    
+    
+    for i in range(n_iter):
+        tm,Mm,Pm=master.one_trajectory(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p, lambda_s=lambda_s,
                                                               P_0=P_0,
                                                               h=h,
                                                               tau=tau,
@@ -205,11 +233,12 @@ def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0
                                                               M_init=M_init,
                                                               sigma_init=1,
                                                               T=T,
-                                                              delta_t=delta_t,
                                                               Omega=Omega)
+        
+        Mm=spinter.interp1d(tm,Mm,kind="zero")(t_ref)
+        Pm=spinter.interp1d(tm,Pm,kind="zero")(t_ref)    
     
-    
-    _,table_Ml,table_Pl=langevin.multiple_trajectories(n_iter=n_iter,alpha_m=alpha_m,alpha_p=alpha_p,mu_m=mu_m,mu_p=mu_p,
+        _,Ml,Pl=langevin.one_trajectory(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
                                                       lambda_s=lambda_s,
                                                       P_0=P_0,
                                                       h=h,
@@ -219,41 +248,60 @@ def compute_fourier_transform_mean_and_std(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0
                                                       T=T,
                                                       delta_t=delta_t,
                                                       Omega=Omega)
+            
     
-    
-    _,table_Mlna,table_Plna=langevin.multiple_trajectories_LNA(n_iter=n_iter, alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
+        _,Mlna,Plna=langevin.one_trajectory_LNA(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
                                                       lambda_s=lambda_s,
                                                       P_0=P_0,
                                                       h=h,
                                                       tau=tau,
+                                                      P_init=0,
+                                                      M_init=0,
                                                       T=T,
                                                       delta_t=delta_t,
                                                       Omega=Omega)
+                
+        mean_Mm[i] = np.mean(Mm)
+        mean_Ml[i] = np.mean(Ml)
+        mean_Mlna[i] = np.mean(Mlna)
+        
+        mean_Pm[i] = np.mean(Pm)
+        mean_Pl[i] = np.mean(Pl)
+        mean_Plna[i] = np.mean(Plna)
+        
+        power_spectrum_Mm += compute_power_spectrum_traj(t_ref[n_stat:],Mm[n_stat:])/n_iter
+        power_spectrum_Ml += compute_power_spectrum_traj(t_ref[n_stat:],Ml[n_stat:])/n_iter
+        power_spectrum_Mlna += compute_power_spectrum_traj(t_ref[n_stat:],Mlna[n_stat:])/n_iter
+
+        power_spectrum_Pm += compute_power_spectrum_traj(t_ref[n_stat:],Pm[n_stat:])/n_iter
+        power_spectrum_Pl += compute_power_spectrum_traj(t_ref[n_stat:],Pl[n_stat:])/n_iter
+        power_spectrum_Plna += compute_power_spectrum_traj(t_ref[n_stat:],Plna[n_stat:])/n_iter
+        
+        var_Mm[i] = np.var(Mm)
+        var_Ml[i] = np.var(Ml)
+        var_Mlna[i] = np.var(Mlna)
+        
+        var_Pm[i] = np.var(Pm)
+        var_Pl[i] = np.var(Pl)
+        var_Plna[i] = np.var(Plna)
+        
+        
+    var_Mm_g = np.mean(var_Mm) + np.var(mean_Mm)
+    var_Ml_g = np.mean(var_Ml) + np.var(mean_Ml)
+    var_Mlna_g = np.mean(var_Mlna) + np.var(mean_Mlna)
+    
+    var_Pm_g = np.mean(var_Pm) + np.var(mean_Pm)
+    var_Pl_g = np.mean(var_Pl) + np.var(mean_Pl)
+    var_Plna_g = np.mean(var_Plna) + np.var(mean_Plna)
     
     
-    omega,power_spectrum_Mm=compute_power_spectrum(t_ref[n_stat:],table_Mm[:,n_stat:])
-    _,power_spectrum_Ml=compute_power_spectrum(t_ref[n_stat:],table_Ml[:,n_stat:])
-    _,power_spectrum_Mlna=compute_power_spectrum(t_ref[n_stat:],table_Mlna[:,n_stat:])
-    
-    _,power_spectrum_Pm=compute_power_spectrum(t_ref[n_stat:],table_Pm[:,n_stat:])
-    _,power_spectrum_Pl=compute_power_spectrum(t_ref[n_stat:],table_Pl[:,n_stat:])
-    _,power_spectrum_Plna=compute_power_spectrum(t_ref[n_stat:],table_Plna[:,n_stat:])
-    
-    pool_Mm=np.reshape(table_Mm[:,n_stat:], n_iter*(n_t-n_stat))   #pool everything together
-    pool_Ml=np.reshape(table_Ml[:,n_stat:], n_iter*(n_t-n_stat))   
-    pool_Mlna=np.reshape(table_Mlna[:,n_stat:], n_iter*(n_t-n_stat))   
-    
-    pool_Pm=np.reshape(table_Pm[:,n_stat:], n_iter*(n_t-n_stat))
-    pool_Pl=np.reshape(table_Pl[:,n_stat:], n_iter*(n_t-n_stat))
-    pool_Plna=np.reshape(table_Plna[:,n_stat:], n_iter*(n_t-n_stat))
-    
-    output={"std Mm": np.std(pool_Mm),"std Ml": np.std(pool_Ml), "std Mlna": np.std(pool_Mlna),
-           "mean Mm": np.mean(pool_Mm), "mean Ml": np.mean(pool_Ml), "mean Mlna": np.mean(pool_Mlna),
-           "power spectrum Mm": power_spectrum_Mm, "power spectrum Ml": power_spectrum_Ml, "power spectrum Mlna": power_spectrum_Mlna,
-           "std Pm": np.std(pool_Pm),"std Pl": np.std(pool_Pl), "std Plna": np.std(pool_Plna),
-           "mean Pm": np.mean(pool_Pm), "mean Pl": np.mean(pool_Pl), "mean Plna": np.mean(pool_Plna),
-           "power spectrum Pm": power_spectrum_Pm, "power spectrum Pl": power_spectrum_Pl, "power spectrum Plna": power_spectrum_Plna,
-           "times":t_ref, "frequencies":omega}
+    output={"std Mm": np.sqrt(var_Mm_g),"std Ml": np.sqrt(var_Ml_g), "std Mlna": np.sqrt(var_Mlna_g),
+           "mean Mm": np.mean(mean_Mm), "mean Ml": np.mean(mean_Ml), "mean Mlna": np.mean(mean_Mlna),
+           "power spectrum Mm": power_spectrum_Mm[1:T//2+1], "power spectrum Ml": power_spectrum_Ml[1:T//2+1], "power spectrum Mlna": power_spectrum_Mlna[1:T//2+1],
+           "std Pm": np.sqrt(var_Pm_g),"std Pl": np.sqrt(var_Pl_g), "std Plna": np.sqrt(var_Plna_g),
+           "mean Pm": np.mean(mean_Pm), "mean Pl": np.mean(mean_Pl), "mean Plna": np.mean(mean_Plna),
+           "power spectrum Pm": power_spectrum_Pm[1:T//2+1], "power spectrum Pl": power_spectrum_Pl[1:T//2+1], "power spectrum Plna": power_spectrum_Plna[1:T//2+1],
+           "times":t_ref, "frequencies": freq}
     
     return output
 

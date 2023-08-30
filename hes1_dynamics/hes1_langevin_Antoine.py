@@ -36,7 +36,6 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
     for i in range(n_t-1):
         
         hill_function=0
-        mean_switch=0
         var_switch=0
         
         if i<k_delay:
@@ -426,6 +425,8 @@ def one_trajectory_LNA(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #
                                                       P_0=1,
                                                       h=4.1,
                                                       tau=0.1,
+                                                      P_init=0,
+                                                      M_init=0,
                                                       T=1000,
                                                       delta_t=1,
                                                       Omega=1):
@@ -436,13 +437,16 @@ def one_trajectory_LNA(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #
     P=np.zeros(n_t)                #array of Hes1 concentrations
     M=np.zeros(n_t)                #array of mRNA concentrations
 
-    M[0]=0
-    P[0]=0    
+    M[0]=M_init
+    P[0]=P_init    
     
     M_stat,P_stat = resolve_stationary_state(alpha_m,mu_m,alpha_p,mu_p,h,P_0)
     df_P=-h/P_0*(P_stat/P_0)**(h-1)/(1+(P_stat/P_0)**h)**2
     
     for i in range(n_t-1):
+        
+        hill_function=0
+        var_switch=0
         
         if i<k_delay:
             mean_increment_M=alpha_m*df_P*P[0] - mu_m*M[i]

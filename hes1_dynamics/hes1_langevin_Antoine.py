@@ -445,9 +445,6 @@ def one_trajectory_LNA(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #
     
     for i in range(n_t-1):
         
-        hill_function=0
-        var_switch=0
-        
         if i<k_delay:
             mean_increment_M=alpha_m*df_P*P[0] - mu_m*M[i]
             mean_increment_P=alpha_p*M[i] - mu_p*P[i]

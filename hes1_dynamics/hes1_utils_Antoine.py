@@ -75,7 +75,7 @@ def lna_power_spectrum(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
     f_P=1/(1+(P_stat/P_0)**h)
     df_P=-h/P_0*(P_stat/P_0)**(h-1)/(1+(P_stat/P_0)**h)**2
     
-    sigma_m2= alpha_m/Omega*f_P + mu_m/Omega*M_stat + alpha_m**2/lambda_s*  2*(P_stat/P_0)**h* f_P**3
+    sigma_m2= alpha_m*f_P + mu_m/Omega*M_stat + alpha_m**2/lambda_s*  2*(P_stat/P_0)**h* f_P**3
     sigma_p2= alpha_p/Omega*M_stat + mu_p/Omega*P_stat
     
     freq=np.fft.fftfreq(n_t,d=delta_t)

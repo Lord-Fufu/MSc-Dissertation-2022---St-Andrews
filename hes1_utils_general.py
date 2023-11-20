@@ -59,10 +59,10 @@ def simulate_master_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
         Mm=spinter.interp1d(t,Mm,kind="zero")(t_ref)
         Pm=spinter.interp1d(t,Pm,kind="zero")(t_ref)
 
-        mean_Mm[i] = np.mean(Mm)
-        mean_Pm[i] = np.mean(Pm)
-        var_Mm[i] = np.var(Mm)
-        var_Pm[i] = np.var(Pm)
+        mean_Mm[i] = np.mean(Mm[n_stat:])
+        mean_Pm[i] = np.mean(Pm[n_stat:])
+        var_Mm[i] = np.var(Mm[n_stat:])
+        var_Pm[i] = np.var(Pm[n_stat:])
 
         freq, this_power_spectrum = utils.compute_power_spectrum_traj(t_ref[n_stat:],Mm[n_stat:])
         power_spectrum_Mm += this_power_spectrum/n_iter
@@ -132,10 +132,10 @@ def simulate_langevin_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03
                                                       Omega=Omega,
                                                       sampling_timestep = sampling_timestep)
 
-        mean_Ml[i] = np.mean(Ml)
-        mean_Pl[i] = np.mean(Pl)
-        var_Ml[i] = np.var(Ml)
-        var_Pl[i] = np.var(Pl)
+        mean_Ml[i] = np.mean(Ml[n_stat:])
+        mean_Pl[i] = np.mean(Pl[n_stat:])
+        var_Ml[i] = np.var(Ml[n_stat:])
+        var_Pl[i] = np.var(Pl[n_stat:])
 
         freq, this_power_spectrum = utils.compute_power_spectrum_traj(t[n_stat:],Ml[n_stat:])
         power_spectrum_Ml += this_power_spectrum/n_iter
@@ -194,7 +194,7 @@ def simulate_lna_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
     power_spectrum_M=np.zeros_like(test_power_spectrum)
     power_spectrum_P=np.zeros_like(test_power_spectrum)
     
-    for i in range(n_iter):
+    for s in range(n_iter):
         t,Mlna,Plna=langevin.one_trajectory_LNA(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
                                                       lambda_s=lambda_s,
                                                       P_0=P_0,
@@ -207,10 +207,10 @@ def simulate_lna_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
                                                       Omega=Omega,
                                                       sampling_timestep = sampling_timestep)
 
-        mean_Mlna[i] = np.mean(Mlna)
-        mean_Plna[i] = np.mean(Plna)
-        var_Mlna[i] = np.var(Mlna)
-        var_Plna[i] = np.var(Plna)
+        mean_Mlna[s] = np.mean(Mlna[n_stat:])
+        mean_Plna[s] = np.mean(Plna[n_stat:])
+        var_Mlna[s] = np.var(Mlna[n_stat:])
+        var_Plna[s] = np.var(Plna[n_stat:])
 
         freq, this_power_spectrum = utils.compute_power_spectrum_traj(t[n_stat:],Mlna[n_stat:])
         power_spectrum_M += this_power_spectrum

@@ -13,7 +13,7 @@ import scipy.interpolate as spinter
 from numba import jit
 
 
-@jit
+@jit(nopython = True)
 def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               P_0=1,
                                                               h=4.1,
@@ -22,7 +22,8 @@ def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               M_init=20,
                                                               sigma_init=1,
                                                               Omega=1,
-                                                              T=1000):
+                                                              T=1000,
+                                                              sampling_timestep = 1):
     t=[0] #list of times when a reaction is started or ended
     P=[P_init] #list of Hes1 molecule numbers
     M=[M_init] #list of mRNA molecule numbers
@@ -89,7 +90,7 @@ def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
     times=np.array(t)
     mRNA=np.array(M)/Omega
     Hes1=np.array(P)/Omega
-
+    
     return times,mRNA,Hes1
 
 '''Generate one trace of the Hes1 model from the master equation (Gillespie algorithm).
@@ -157,7 +158,7 @@ def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
 '''
 
 
-@jit
+@jit(nopython = True)
 def multiple_trajectories(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,   
                                                               P_0=1,                        
                                                               h=4.1,
@@ -258,7 +259,7 @@ def multiple_trajectories(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,la
         Table of Hes1 concentrations, taken at time values given in 't_ref'.
 '''
 
-@jit
+@jit(nopython = True)
 def pool_values(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,            
                                                               P_0=1,                   
                                                               h=4.1,
@@ -359,7 +360,7 @@ def pool_values(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
         Table of stationary Hes1 concentrations.
 '''
 
-@jit
+@jit(nopython = True)
 def one_trajectory_noSwitchNoise( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,
                                                               P_0=1,
                                                               h=4.1,

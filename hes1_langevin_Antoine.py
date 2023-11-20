@@ -12,7 +12,7 @@ from scipy.optimize import bisect
 import hes1_master_Antoine as master
 from numba import jit
 
-@jit
+@jit(nopython = True)
 def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one trajectory of langevin equation, scheme Euler-Maruyama
                                                       lambda_s=1,       
                                                       P_0=1,
@@ -22,8 +22,8 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
                                                       M_init=20,
                                                       T=1000,
                                                       delta_t=1,
-                                                      Omega=1,
-                                                      sampling_timestep = 1):
+                                                      sampling_timestep  = 1,
+                                                      Omega=1):
     
     n_t=int(T/delta_t)             #number of points in the time mesh
     k_delay=round(tau/delta_t)     #delayed shifting on indices
@@ -57,6 +57,8 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
         M[i+1]=abs(M[i] + mean_increment_M*delta_t + std_increment_M*w_m)  #reflective boundary conditions
         P[i+1]=abs(P[i] + mean_increment_P*delta_t + std_increment_P*w_p)
     
+    
+    #for this to make sense delta_t has to be less than one
     sampling_timestep_multiple = int(round(1.0/delta_t))
 
     t_to_return = t[::(sampling_timestep_multiple*sampling_timestep)]
@@ -133,7 +135,7 @@ def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one tra
 
 
 
-@jit
+@jit(nopython = True)
 def multiple_trajectories(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,        #perform many realisations
                                                       lambda_s=1,                    #and gather in a table
                                                       P_0=1,
@@ -234,7 +236,7 @@ def multiple_trajectories(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,   
         Hes1 concentrations, taken at time values given in 't'.
 '''
 
-@jit
+@jit(nopython = True)
 def pool_values(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,      #pool many stationary realisations
                                                       lambda_s=1,        #inside of an array
                                                       P_0=1,
@@ -333,7 +335,7 @@ def pool_values(n_iter=100,alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,      #pool m
         
 '''
 
-@jit
+@jit(nopython = True)
 def resolve_ODE(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,P_0=1,
                                                       h=4.1,
                                                       tau=0.1,
@@ -437,7 +439,39 @@ def one_trajectory_LNA(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #
                                                       T=1000,
                                                       delta_t=1,
                                                       Omega=1,
-                                                      sampling_timestep = 1):
+                                                      sampling_timestep = 1.0):
+    
+    M_stat,P_stat = resolve_stationary_state(alpha_m,mu_m,alpha_p,mu_p,h,P_0)
+    t,M,P = one_trajectory_LNA_with_steady_state(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,             #one trajectory of langevin equation, scheme Euler-Maruyama
+                                                      lambda_s=lambda_s,       
+                                                      P_0=P_0,
+                                                      h=h,
+                                                      tau=tau,
+                                                      P_init=P_init,
+                                                      M_init=M_init,
+                                                      T=T,
+                                                      delta_t=delta_t,
+                                                      Omega=Omega,
+                                                      sampling_timestep = sampling_timestep,
+                                                      stationary_m = M_stat,
+                                                      stationary_p = P_stat)
+    
+    return t,M,P
+
+@jit
+def one_trajectory_LNA_with_steady_state(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #one trajectory of langevin equation, scheme Euler-Maruyama
+                                                      lambda_s=1,       
+                                                      P_0=1,
+                                                      h=4.1,
+                                                      tau=0.1,
+                                                      P_init=0,
+                                                      M_init=0,
+                                                      T=1000,
+                                                      delta_t=1,
+                                                      Omega=1,
+                                                      sampling_timestep = 1.0,
+                                                      stationary_m = 10.0,
+                                                      stationary_p = 10.0):
     
     n_t=int(T/delta_t)             #number of points in the time mesh
     k_delay=round(tau/delta_t)     #delayed shifting on indices
@@ -448,14 +482,8 @@ def one_trajectory_LNA(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #
     M[0]=M_init
     P[0]=P_init    
     
-    M_stat,P_stat = resolve_stationary_state(alpha_m,mu_m,alpha_p,mu_p,h,P_0)
+    M_stat,P_stat = stationary_m, stationary_p
     df_P=-h/P_0*(P_stat/P_0)**(h-1)/(1+(P_stat/P_0)**h)**2
-    
-    hill_function_stat=1/(1+(P_stat/P_0)**h)
-    var_switch=(alpha_m**2/lambda_s)*2*(P_stat/P_0)**h*hill_function_stat**3    #value of the switching induced diffusion
-    
-    std_increment_M =np.sqrt(alpha_m/Omega*hill_function_stat + mu_m/Omega*M_stat + var_switch)
-    std_increment_P =np.sqrt(alpha_p/Omega*M_stat + mu_p/Omega*P_stat)
     
     for i in range(n_t-1):
         
@@ -465,19 +493,29 @@ def one_trajectory_LNA(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #
         elif i>= k_delay:
             mean_increment_M=alpha_m*df_P*P[i-k_delay] - mu_m*M[i]                  #increment in LNA
             mean_increment_P=alpha_p*M[i] - mu_p*P[i]
+        
+        hill_function_stat=1/(1+(P_stat/P_0)**h)
+        var_switch=(alpha_m**2/(lambda_s))*2*(P_stat/P_0)**h*hill_function_stat**3    #value of the switching induced diffusion
            
         w_m=np.random.normal(0,np.sqrt(delta_t))
         w_p=np.random.normal(0,np.sqrt(delta_t))
         
-        M[i+1]=M[i] + mean_increment_M*delta_t + std_increment_M*w_m
-        P[i+1]=P[i] + mean_increment_P*delta_t + std_increment_P*w_p
+        std_increment_M =np.sqrt(alpha_m/Omega*hill_function_stat + mu_m/Omega*M_stat + var_switch)
+        std_increment_P =np.sqrt(alpha_p/Omega*M_stat + mu_p/Omega*P_stat)
+        
+        M[i+1]= M[i] + mean_increment_M*delta_t + std_increment_M*w_m  
+        P[i+1]= P[i] + mean_increment_P*delta_t + std_increment_P*w_p
     
-    sampling_timestep_multiple = int(round(1.0/delta_t))
+    M = M + M_stat*np.ones(n_t)
+    P = P + P_stat*np.ones(n_t)
+    
+    #for this to make sense delta_t has to be less than the sampling timestep
+    sampling_timestep_multiple = int(round(sampling_timestep/delta_t))
 
-    t_to_return = t[::(sampling_timestep_multiple*sampling_timestep)]
-    m_to_return = M[::(sampling_timestep_multiple*sampling_timestep)]
-    p_to_return = P[::(sampling_timestep_multiple*sampling_timestep)]
-
+    t_to_return = t[::(sampling_timestep_multiple)]
+    m_to_return = M[::(sampling_timestep_multiple)]
+    p_to_return = P[::(sampling_timestep_multiple)]
+    
     return t_to_return,m_to_return,p_to_return
 '''Generate one trace of the LNA Hes1 model.
 

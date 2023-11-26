@@ -13,6 +13,107 @@ import scipy.interpolate as spinter
 from numba import jit
 
 
+
+
+@jit(nopython = True)
+def perform_reaction(t, M, P, sigma, d_react, a_0, prop1, prop2, prop3, prop4, tau):
+        
+        rr = a_0 * rd.uniform(0,1)
+               
+        if rr < prop1:                         #destruction of M
+            M=M-1
+        elif rr < prop2:                       #destruction of P
+            P=P-1
+        elif rr < prop3:                       #creation of P
+            P=P+1
+        elif rr < prop4:                       #plan delayed reaction for creation of M 
+            d_react.append(t+tau)
+        else:                                  #switch environment
+            sigma = (1-sigma)
+        
+        return M,P,sigma
+
+    
+    
+@jit(nopython = True)
+def run_master( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
+                                                              P_0=1,
+                                                              h=4.1,
+                                                              tau=0.1,
+                                                              P_init=10,
+                                                              M_init=20,
+                                                              sigma_init=1,
+                                                              Omega=1,
+                                                              T=1000,
+                                                              sampling_timestep = 1):
+
+    t=0                     #time when a reaction is started or ended
+    t_next=t
+    
+    P=P_init                #Hes1 molecule numbers
+    M=M_init                #mRNA molecule numbers
+    sigma=sigma_init        #environment configuration
+    d_react=[0.1]              #list (queue) of end times of delayed reactions
+    del d_react[0]
+
+    coeff = alpha_m*Omega
+    n_p0=P_0*Omega
+
+    
+    N=int(T/sampling_timestep)
+    time_to_return = np.linspace(0,T,N)
+    mRNA_to_return = np.zeros(N)
+    Hes1_to_return = np.zeros(N)
+    
+    index_to_store = 1
+    time_to_store = sampling_timestep
+    
+    while t<T:
+        prop1 = mu_m*M
+        prop2 = prop1 + mu_p*P
+        prop3 = prop2 + alpha_p*M
+        prop4 = prop3 + sigma*coeff
+                
+        if sigma==1:                                          #add switching environment term
+            a_0 = prop4 + lambda_s*(P/n_p0)**h
+        else:
+            a_0 = prop4 + lambda_s   
+
+        r=rd.uniform(0,1)                                  #generate delta via inverse transform method (exponential distribution)
+        delta=-np.log(r)/a_0
+                        
+        if d_react and d_react[0]<=t+delta:    #if a delayed reaction is planned, creation of M
+            t_next=d_react[0]
+            if t_next > time_to_store:
+                mRNA_to_return[index_to_store] = M/Omega
+                Hes1_to_return[index_to_store] = P/Omega
+                index_to_store+=1
+                time_to_store+=sampling_timestep
+            M=M+1
+            del d_react[0]                               #then remove the delayed reaction
+
+        else:                                            #else perform a new reaction
+            t_next=t+delta
+            if t_next > time_to_store:
+                mRNA_to_return[index_to_store] = M/Omega
+                Hes1_to_return[index_to_store] = P/Omega
+                index_to_store+=1
+                time_to_store+=sampling_timestep
+                
+            M,P,sigma = perform_reaction(t_next, M, P, sigma, d_react, a_0, prop1, prop2, prop3, prop4, tau)
+        
+        t = t_next
+    
+    mRNA_to_return[0] = M_init/Omega
+    Hes1_to_return[0] = P_init/Omega
+    
+    mRNA_to_return[-1] = M/Omega
+    Hes1_to_return[-1] = P/Omega
+    
+    return time_to_return,mRNA_to_return,Hes1_to_return
+                 
+        
+
 @jit(nopython = True)
 def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               P_0=1,
@@ -24,74 +125,20 @@ def one_trajectory( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               Omega=1,
                                                               T=1000,
                                                               sampling_timestep = 1):
-    t=[0] #list of times when a reaction is started or ended
-    P=[P_init] #list of Hes1 molecule numbers
-    M=[M_init] #list of mRNA molecule numbers
-    sigma=[sigma_init] #list of environment configuration
-    d_react=[] #list (queue) of end times of delayed reactions
-    
-    def perform_reaction(a_0,t,M,P):
-        rr=rd.uniform(0,1)
-        a_1=mu_m*M[-1]
-        a_2=mu_p*P[-1]
-        a_3=alpha_p*M[-1]
-        a_4=alpha_m*Omega*sigma[-1]
-
-        if rr<a_1/a_0:                      #destruction of M
-            M.append(M[-1]-1)
-            P.append(P[-1])
-            sigma.append(sigma[-1])
-        elif rr < (a_1+a_2)/a_0:            #destruction of P
-            M.append(M[-1])
-            P.append(P[-1]-1)
-            sigma.append(sigma[-1])
-        elif rr < (a_1+a_2+a_3)/a_0:        #creation of P
-            M.append(M[-1])
-            P.append(P[-1]+1)
-            sigma.append(sigma[-1])
-        elif rr < (a_1+a_2+a_3+a_4)/a_0:    #plan delayed reaction for creation of M 
-            d_react.append(t[-1]+tau)
-            M.append(M[-1])
-            P.append(P[-1])
-            sigma.append(sigma[-1])
-        else:                               #switch environment
-            M.append(M[-1])
-            P.append(P[-1])
-            sigma.append(1-sigma[-1])
     
     
-    def run_master():
-        while t[-1]<T:
-            a_0=mu_m*M[-1]+mu_p*P[-1]+alpha_p*M[-1]+sigma[-1]*alpha_m*Omega    #total propensity
-            
-            n_p0=P_0*Omega
-            if sigma[-1]==1:                                          #add switching environment term
-                a_0+=lambda_s*(P[-1]/n_p0)**h
-            else:
-                a_0+=lambda_s   
-
-            r=rd.uniform(0,1)                                  #generate delta via inverse transform method (exponential distribution)
-            delta=-np.log(r)/a_0
-
-            if len(d_react)!=0 and d_react[0]<=t[-1]+delta:    #if a delayed reaction is planned, creation of M
-                t.append(d_react[0])
-                M.append(M[-1]+1)
-                P.append(P[-1])
-                sigma.append(sigma[-1])
-
-                del d_react[0]                               #then remove the delayed reaction
-
-            else:                                            #else perform a new reaction
-                t.append(t[-1]+delta)
-                perform_reaction(a_0,t,M,P)
-
-    run_master()
+    return run_master( alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p, lambda_s=lambda_s,
+                                                              P_0=P_0,
+                                                              h=h,
+                                                              tau=tau,
+                                                              P_init=P_init,
+                                                              M_init=M_init,
+                                                              sigma_init=sigma_init,
+                                                              Omega=Omega,
+                                                              T=T,
+                                                              sampling_timestep = sampling_timestep)
     
-    times=np.array(t)
-    mRNA=np.array(M)/Omega
-    Hes1=np.array(P)/Omega
     
-    return times,mRNA,Hes1
 
 '''Generate one trace of the Hes1 model from the master equation (Gillespie algorithm).
 
@@ -168,27 +215,27 @@ def multiple_trajectories(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,la
                                                               sigma_init=1,
                                                               T=1000,
                                                               Omega=1,
-                                                              delta_t=1):
+                                                              sampling_timestep=1.0):
     n_t=int(T/delta_t)
-    t_ref=np.linspace(0,T,n_t)             #define a time mesh
     table_M=np.zeros((n_iter,n_t))
     table_P=np.zeros((n_iter,n_t))
     
     for k in range(n_iter):
         t,M,P=one_trajectory(alpha_m=alpha_m, alpha_p=alpha_p,mu_m=mu_m,mu_p=mu_p,lambda_s=lambda_s,
-                                                              P_0=P_0,
-                                                              h=h,
-                                                              tau=tau,
-                                                              Omega=Omega,
-                                                              P_init=P_init,
-                                                              M_init=M_init,
-                                                              sigma_init=sigma_init,
-                                                              T=T)                         #run one_trajectory n_iter times
+                                  P_0=P_0,
+                                  h=h,
+                                  tau=tau,
+                                  Omega=Omega,
+                                  P_init=P_init,
+                                  M_init=M_init,
+                                  sigma_init=sigma_init,
+                                  T=T,
+                                  sampling_timestep = sampling_timestep)                         #run one_trajectory n_iter times
         
-        table_M[k,:]=spinter.interp1d(t,M,kind="zero")(t_ref)   #interpolate on the mesh and gather in a table
-        table_P[k,:]=spinter.interp1d(t,P,kind="zero")(t_ref)
+        table_M[k,:]=M   #interpolate on the mesh and gather in a table
+        table_P[k,:]=P
     
-    return t_ref,table_M,table_P
+    return t,table_M,table_P
 
 
 '''Generate multiple traces of the Hes1 model from the master equation (Gillespie algorithm). Calls "one_trajectory".
@@ -272,7 +319,6 @@ def pool_values(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               Omega=1):
     
     n_t=int(T/delta_t)
-    t=np.linspace(0,T,n_t)
     
     t_ref,table_M,table_P=multiple_trajectories(n_iter=n_iter,alpha_m=alpha_m, alpha_p=alpha_p,mu_m=mu_m,mu_p=mu_p,lambda_s=lambda_s,
                                                               P_0=P_0,
@@ -360,69 +406,94 @@ def pool_values(n_iter=100,alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
         Table of stationary Hes1 concentrations.
 '''
 
+
+
+
 @jit(nopython = True)
-def one_trajectory_noSwitchNoise( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,
+def perform_reaction_noSwitch(t, M, P, d_react, a_0, prop1, prop2, prop3, tau):
+        
+        rr = a_0 * rd.uniform(0,1)
+               
+        if rr < prop1:                         #destruction of M
+            M=M-1
+        elif rr < prop2:                       #destruction of P
+            P=P-1
+        elif rr < prop3:                       #creation of P
+            P=P+1
+        else:                       #plan delayed reaction for creation of M 
+            d_react.append(t+tau)
+        
+        return M,P    
+
+                 
+        
+
+@jit(nopython = True)
+def one_trajectory_noSwitchNoise( alpha_m=1, alpha_p=1,mu_m=0.03,mu_p=0.03,lambda_s=1,
                                                               P_0=1,
                                                               h=4.1,
                                                               tau=0.1,
                                                               P_init=10,
                                                               M_init=20,
-                                                              sigma_init=1,
                                                               Omega=1,
-                                                              T=1000):
-    t=[0] #list of times when a reaction is started or ended
-    P=[P_init] #list of Hes1 molecule numbers
-    M=[M_init] #list of mRNA molecule numbers
-    d_react=[] #list (queue) of end times of delayed reactions
+                                                              T=1000,
+                                                              sampling_timestep = 1):
     
+    
+    t=0                     #time when a reaction is started or ended
+    t_next=t
+    
+    P=P_init                #Hes1 molecule numbers
+    M=M_init                #mRNA molecule numbers
+    d_react=[0.1]              #list (queue) of end times of delayed reactions
+    del d_react[0]
+
+    coeff = alpha_m*Omega
     n_p0=P_0*Omega
     
-    def perform_reaction(a_0,t,M,P):
-        rr=rd.uniform(0,1)
-        a_1=mu_m*M[-1]
-        a_2=mu_p*P[-1]
-        a_3=alpha_p*M[-1]
-        a_4=alpha_m*Omega/(1+(P[-1]/n_p0)**h)
-
-        if rr<a_1/a_0:                      #destruction of M
-            M.append(M[-1]-1)
-            P.append(P[-1])
-        elif rr < (a_1+a_2)/a_0:            #destruction of P
-            M.append(M[-1])
-            P.append(P[-1]-1)
-        elif rr < (a_1+a_2+a_3)/a_0:        #creation of P
-            M.append(M[-1])
-            P.append(P[-1]+1)
-        elif rr < (a_1+a_2+a_3+a_4)/a_0:    #plan delayed reaction for creation of M 
-            d_react.append(t[-1]+tau)
-            M.append(M[-1])
-            P.append(P[-1])
+    N=int(T/sampling_timestep)
+    time_to_return = np.linspace(0,T,N)
+    mRNA_to_return = np.zeros(N)
+    Hes1_to_return = np.zeros(N)
     
-    def run_master():
-        while t[-1]<T:
-            a_0=mu_m*M[-1]+mu_p*P[-1]+alpha_p*M[-1]+alpha_m*Omega/(1+(P[-1]/n_p0)**h)    #total propensity
-            
-            r=rd.uniform(0,1)                                  #generate delta via inverse transform method (exponential distribution)
-            delta=-np.log(r)/a_0
-
-            if len(d_react)!=0 and d_react[0]<=t[-1]+delta:    #if a delayed reaction is planned, creation of M
-                t.append(d_react[0])
-                M.append(M[-1]+1)
-                P.append(P[-1])
-
-                del d_react[0]                               #then remove the delayed reaction
-
-            else:                                            #else perform a new reaction
-                t.append(t[-1]+delta)
-                perform_reaction(a_0,t,M,P)
-
-    run_master()
+    index_t_to_store = 1
     
-    times=np.array(t)
-    mRNA=np.array(M)/Omega
-    Hes1=np.array(P)/Omega
     
-    return times,mRNA,Hes1
+    while t_next<T:            
+        prop1 = mu_m*M
+        prop2 = prop1 + mu_p*P
+        prop3 = prop2 + alpha_p*M
+        a_0 = prop3 + alpha_m*Omega/(1+(P/n_p0)**h)
+                
+        n_p0=P_0*Omega
+          
+
+        r=rd.uniform(0,1)                                  #generate delta via inverse transform method (exponential distribution)
+        delta=-np.log(r)/a_0
+
+        if d_react and d_react[0]<=t+delta:    #if a delayed reaction is planned, creation of M
+            t_next=d_react[0]
+            if t_next > time_to_return[index_t_to_store]:
+                mRNA_to_return[index_t_to_store] = M/Omega
+                Hes1_to_return[index_t_to_store] = P/Omega
+                index_t_to_store+=1
+            M=M+1
+            del d_react[0]                               #then remove the delayed reaction
+
+        else:                                            #else perform a new reaction
+            t_next=t+delta
+            if t_next > time_to_return[index_t_to_store]:
+                mRNA_to_return[index_t_to_store] = M/Omega
+                Hes1_to_return[index_t_to_store] = P/Omega
+                index_t_to_store+=1
+            M,P = perform_reaction_noSwitch(t, M, P, d_react, a_0, prop1, prop2, prop3, tau)
+        
+        t = t_next
+    
+    mRNA_to_return[-1] = M/Omega
+    Hes1_to_return[-1] = P/Omega
+    
+    return time_to_return,mRNA_to_return,Hes1_to_return
 
 '''Generate one trace of the Hes1 model from the master equation (Gillespie algorithm) with effective average rate (large lambda_s).
 

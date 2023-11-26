@@ -152,7 +152,7 @@ def lna_power_spectrum(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
 
 '''
 
-
+@jit(nopython = True)
 def compute_power_spectrum_traj(t,traj):
     n_t=len(traj)
     delta_t=t[1]-t[0]
@@ -167,7 +167,7 @@ def compute_power_spectrum_traj(t,traj):
     
     freq=freq[:no_real_frequencies]*2*np.pi
     
-    power_spectrum=np.abs(np.fft.fft(trajectory_for_calculation))**2*T/(n_t**2)
+    power_spectrum = np.abs(np.fft.fft(trajectory_for_calculation))**2*T/(n_t**2)
     power_spectrum = power_spectrum[:no_real_frequencies]
     
     return freq, power_spectrum

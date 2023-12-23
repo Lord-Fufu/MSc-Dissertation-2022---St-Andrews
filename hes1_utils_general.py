@@ -24,6 +24,8 @@ def dummy_simulate_master_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03
     var_Pm = np.zeros(n_iter)
     mean_Mm = np.zeros(n_iter)
     mean_Pm = np.zeros(n_iter)
+    momentumFour_Mm = np.zeros(n_iter)
+    momentumFour_Pm = np.zeros(n_iter)
     
     n_stat=int(2000/sampling_timestep)
 
@@ -43,11 +45,13 @@ def dummy_simulate_master_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03
         mean_Pm[i] = np.mean(Pm[n_stat:])
         var_Mm[i] = np.var(Mm[n_stat:])
         var_Pm[i] = np.var(Pm[n_stat:])
+        momentumFour_Mm[i] = np.mean(Mm[n_stat:]**4)
+        momentumFour_Pm[i] = np.mean(Pm[n_stat:]**4)
             
     var_Mm_g = np.mean(var_Mm) + np.var(mean_Mm)
     var_Pm_g = np.mean(var_Pm) + np.var(mean_Pm)
     
-    return np.mean(mean_Mm), np.sqrt(var_Mm_g), np.mean(mean_Pm), np.sqrt(var_Pm_g)
+    return np.mean(mean_Mm), np.sqrt(var_Mm_g), np.mean(momentumFour_Mm), np.mean(mean_Pm), np.sqrt(var_Pm_g), np.mean(momentumFour_Pm)
 
 @jit(nopython = True)
 def simulate_master_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
@@ -74,10 +78,12 @@ def simulate_master_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p
                                                       Omega=Omega,
                                                       sampling_timestep = sampling_timestep)
     
-    output={"std Mm": temp[1],
-           "mean Mm": temp[0],
-           "std Pm": temp[3],
-           "mean Pm": temp[2]}
+    output={"mean Mm": temp[0],
+           "std Mm": temp[1],
+           "momentumFour Mm": temp[2],
+           "mean Pm": temp[3],
+           "std Pm": temp[4],
+           "momentumFour Pm": temp[5]}
     
     return output
 
@@ -140,6 +146,8 @@ def simulate_master_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
         mean_Pm[i] = np.mean(Pm[n_stat:])
         var_Mm[i] = np.var(Mm[n_stat:])
         var_Pm[i] = np.var(Pm[n_stat:])
+        momentumFour_Mm = np.mean(Mm[n_stat:]**4)
+        momentumFour_Pm = np.mean(Pm[n_stat:]**4)
 
         freq, this_power_spectrum = utils.compute_power_spectrum_traj(t_ref[n_stat:],Mm[n_stat:])
         power_spectrum_Mm += this_power_spectrum/n_iter
@@ -177,6 +185,8 @@ def simulate_langevin_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu
     var_Pl = np.zeros(n_iter)
     mean_Ml = np.zeros(n_iter)
     mean_Pl = np.zeros(n_iter)
+    momentumFour_Ml = np.zeros(n_iter)
+    momentumFour_Pl = np.zeros(n_iter)
 
     n_stat=int(2000/sampling_timestep)
     
@@ -197,6 +207,8 @@ def simulate_langevin_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu
         mean_Pl[i] = np.mean(Pl[n_stat:])
         var_Ml[i] = np.var(Ml[n_stat:])
         var_Pl[i] = np.var(Pl[n_stat:])
+        momentumFour_Ml[i] = np.mean(Ml[n_stat:]**4)
+        momentumFour_Pl[i] = np.mean(Pl[n_stat:]**4)
         
     var_Ml_g = np.mean(var_Ml) + np.var(mean_Ml)
     var_Pl_g = np.mean(var_Pl) + np.var(mean_Pl)
@@ -204,8 +216,11 @@ def simulate_langevin_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu
     
     output={"std Ml": np.sqrt(var_Ml_g),
            "mean Ml": np.mean(mean_Ml),
+           "momentumFour Ml": np.mean(momentumFour_Ml),
            "std Pl": np.sqrt(var_Pl_g),
-           "mean Pl": np.mean(mean_Pl)}
+           "mean Pl": np.mean(mean_Pl),
+           "momentumFour Pl": np.mean(momentumFour_Pl)}
+    
     
     return output
 
@@ -227,6 +242,7 @@ def simulate_langevin_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03
     var_Pl = np.zeros(n_iter)
     mean_Ml = np.zeros(n_iter)
     mean_Pl = np.zeros(n_iter)
+    
         
     t,Ml,Pl=langevin.one_trajectory(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
                                                       lambda_s=lambda_s,
@@ -300,6 +316,8 @@ def simulate_lna_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.
     var_Plna = np.zeros(n_iter)
     mean_Mlna = np.zeros(n_iter)
     mean_Plna = np.zeros(n_iter)
+    momentumFour_Mlna = np.zeros(n_iter)
+    momentumFour_Plna = np.zeros(n_iter) 
 
     n_stat=int(2000/sampling_timestep)
     
@@ -320,14 +338,18 @@ def simulate_lna_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.
         mean_Plna[i] = np.mean(Plna[n_stat:])
         var_Mlna[i] = np.var(Mlna[n_stat:])
         var_Plna[i] = np.var(Plna[n_stat:])
+        momentumFour_Mlna[i] = np.mean(Mlna[n_stat:]**4)
+        momentumFour_Plna[i] = np.mean(Plna[n_stat:]**4)
 
     var_Mlna_g = np.mean(var_Mlna) + np.var(mean_Mlna)
-    var_Plna_g = np.mean(var_Plna) + np.var(mean_Plna)
+    var_Plna_g = np.mean(var_Plna) + np.var(mean_Plna)  
     
     output={"std Mlna": np.sqrt(var_Mlna_g),
            "mean Mlna": np.mean(mean_Mlna),
+           "momentumFour Mlna": np.mean(momentumFour_Mlna),
            "std Plna": np.sqrt(var_Plna_g),
-           "mean Plna": np.mean(mean_Plna)}
+           "mean Plna": np.mean(mean_Plna),
+           "momentumFour Plna": np.mean(momentumFour_Plna)}
     
     return output
 

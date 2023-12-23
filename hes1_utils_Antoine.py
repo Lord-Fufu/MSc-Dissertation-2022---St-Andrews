@@ -152,20 +152,19 @@ def lna_power_spectrum(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
 
 '''
 
-@jit(nopython = True)
+@jit
 def compute_power_spectrum_traj(t,traj):
     n_t=len(traj)
     delta_t=t[1]-t[0]
     T=t[-1]-t[0]
     trajectory_for_calculation = traj - np.mean(traj)
     
-    freq=np.fft.fftfreq(n_t,d=delta_t)
     if n_t%2 == 0: 
-        no_real_frequencies = len(freq)//2
+        no_real_frequencies = n_t//2
     else:
-        no_real_frequencies = len(freq)//2-1
+        no_real_frequencies = n_t//2-1
     
-    freq=freq[:no_real_frequencies]*2*np.pi
+    freq = 2*np.pi*np.array([k/n_t/delta_t for k in range(no_real_frequencies)])     
     
     power_spectrum = np.abs(np.fft.fft(trajectory_for_calculation))**2*T/(n_t**2)
     power_spectrum = power_spectrum[:no_real_frequencies]

@@ -121,8 +121,8 @@ def simulate_master_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
     t_ref=np.arange(0,T,delta_t)
     t_ref=t_ref[::(sampling_timestep_multiple*sampling_timestep)]
     
-    Mm=interpolator(t,t_ref,Mm)
-    Pm=interpolator(t,t_ref,Pm)
+    Mm=spinter.interp1d(t,Mm,kind="zero")(t_ref)
+    Pm=spinter.interp1d(t,Pm,kind="zero")(t_ref)
 
     n_stat=int(2000/sampling_timestep)
     freq_ref, test_power_spectrum = utils.compute_power_spectrum_traj(t_ref[n_stat:],Pm[n_stat:])
@@ -139,8 +139,8 @@ def simulate_master_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
                                                               sigma_init=1,
                                                               Omega=Omega,
                                                               T=T)
-        Mm=interpolator(t,t_ref,Mm)
-        Pm=interpolator(t,t_ref,Pm)
+        Mm=spinter.interp1d(t,Mm,kind="zero")(t_ref)
+        Pm=spinter.interp1d(t,Pm,kind="zero")(t_ref)
 
         mean_Mm[i] = np.mean(Mm[n_stat:])
         mean_Pm[i] = np.mean(Pm[n_stat:])

@@ -822,7 +822,7 @@ def one_trajectory_PLP(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one
 '''
 
 
-@jit(nopython = True)
+'''@jit(nopython = True)
 def one_trajectory_PDMP(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             
                                                       lambda_s=1,       
                                                       P_0=1,
@@ -846,7 +846,7 @@ def one_trajectory_PDMP(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
                                                       T=T,
                                                       delta_t=delta_t,
                                                       sampling_timestep  = sampling_timestep,
-                                                      Omega= float('infinity'))
+                                                      Omega= float('infinity'))'''
 
 '''Generate one trace of the PDMP Hes1 model (piecewise deterministic Markov process), by setting demographic noise to zero in the PLP (infinite Omega).
 
@@ -916,7 +916,7 @@ def one_trajectory_PDMP(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,
 
 
 
-def one_trajectory_PDMP_doubleCheck(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,  #one trajectory of langevin equation, scheme Euler-Maruyama
+def one_trajectory_PDMP(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,  #one trajectory of langevin equation, scheme Euler-Maruyama
                                                       lambda_s=1,       
                                                       P_0=1,
                                                       h=4.1,

@@ -14,7 +14,7 @@ from numba import jit
 
 @jit(nopython = True)
 def one_trajectory(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,             #one trajectory of langevin equation, scheme Euler-Maruyama
-                                                      lambda_s=1,       
+                                                      lambda_s=1.0,       
                                                       P_0=1,
                                                       h=4.1,
                                                       tau=0.1,
@@ -345,7 +345,7 @@ def resolve_ODE(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,P_0=1,
                                                       delta_t=1):
     
     return one_trajectory(alpha_m=alpha_m,alpha_p=alpha_p,mu_m=mu_m,mu_p=mu_p,
-                                                      lambda_s=float('infinity'),
+                                                      lambda_s=1e308,
                                                       P_0=P_0,
                                                       h=h,
                                                       tau=tau,
@@ -353,7 +353,7 @@ def resolve_ODE(alpha_m=1,alpha_p=1,mu_m=0.03,mu_p=0.03,P_0=1,
                                                       M_init=M_init,
                                                       T=T,
                                                       delta_t=delta_t,
-                                                      Omega=float('infinity')) #Omega and lambda_s set to infinity
+                                                      Omega=1e308) #Omega and lambda_s set to infinity
 
 
 
@@ -425,6 +425,8 @@ def resolve_stationary_state(alpha_m,mu_m,alpha_p,mu_p,h,P_0):             #find
 
     p_stat=bisect(optim_func,0,10**6)                                  
     m_stat=mu_p/alpha_p*p_stat
+    # print(m_stat)
+    # print(p_stat)
     return m_stat,p_stat
 
 
@@ -490,7 +492,7 @@ def one_trajectory_LNA_with_steady_state(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0
     return t_to_return,m_to_return,p_to_return
 
 
-@jit
+# @jit
 def one_trajectory_LNA(alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,             #one trajectory of langevin equation, scheme Euler-Maruyama
                                                       lambda_s=1,       
                                                       P_0=1,

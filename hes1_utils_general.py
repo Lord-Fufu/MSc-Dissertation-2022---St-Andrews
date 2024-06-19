@@ -89,7 +89,7 @@ def simulate_master_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p
 
 
 
-@jit
+# @jit
 def simulate_master_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
                                                       lambda_s=1,        
                                                       P_0=100,
@@ -225,7 +225,7 @@ def simulate_langevin_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu
     return output
 
 
-@jit
+# @jit
 def simulate_langevin_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
                                                       lambda_s=1,        
                                                       P_0=100,
@@ -299,7 +299,7 @@ def simulate_langevin_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03
     return output
 
 
-@jit
+# @jit
 def simulate_lna_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
                                                       lambda_s=1,        
                                                       P_0=100,
@@ -354,7 +354,7 @@ def simulate_lna_meanAndStd(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.
     return output
 
 
-@jit
+# @jit
 def simulate_lna_all(n_iter=100, alpha_m=1, alpha_p=1, mu_m=0.03, mu_p=0.03,
                                                       lambda_s=1,        
                                                       P_0=100,

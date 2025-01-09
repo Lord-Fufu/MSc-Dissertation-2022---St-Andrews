@@ -3,6 +3,7 @@ import hes1_master_Antoine as master
 import hes1_utils_Antoine as utils
 import hes1_utils_general as general
 import reviewer
+import toggle_switch
 # import jochen_utils as jutils
 
 import matplotlib.pyplot as plt
@@ -21,6 +22,7 @@ from scipy.stats import skew
 from scipy.stats import wasserstein_distance
 from numba import jit
 from scipy.special import rel_entr
+import scipy.integrate
 
 
 font = {'size'   : 8,
@@ -1357,7 +1359,267 @@ def plot_power_spectrum_data_review():
     plt.savefig(os.path.join(read_directory,'plots_review','error-std-plots-Omega' + str(val_Omega[j]) + '-tau' + str(val_tau[k]) + '.pdf'))
     plt.show()
 
+def plot_toggle_switch_gillespie():
+    read_directory = os.path.join(os.path.dirname(__file__),'paper_plots_mean-std-power-spectrum') 
+    trajectory = toggle_switch.generate_stochastic_trajectory( duration = 10000,
+                                    repression_threshold = 3,
+                                    hill_coefficient = 2,
+                                    degradation_rate = 0.1,
+                                    basal_transcription_rate = 1,
+                                    switching_rate = 1,
+                                    system_size = 100,
+                                    initial_a = 1,
+                                    initial_b = 1,
+                                    equilibration_time = 0.0,
+                                    sampling_timestep = 1.0)
+ 
+    plt.figure(figsize=(3.3,2.0), constrained_layout = True) 
+    plt.plot(trajectory[:,0], trajectory[:,1], label = 'A')
+    plt.plot(trajectory[:,0], trajectory[:,2], label = 'B')
+    plt.xlabel('Time (a.u)')
+    plt.ylabel('Concentration (a.u)')
+    plt.ylim(0,11)
+    plt.legend()
+    plt.savefig(os.path.join(read_directory,'plots_review','toggle_switch_start.pdf'))
 
+def plot_toggle_switch_ODE():
+    read_directory = os.path.join(os.path.dirname(__file__),'paper_plots_mean-std-power-spectrum') 
+    # Define the parameters
+    a_m = 1  # Maximum synthesis rate
+    p_0 = 1   # Threshold parameter
+    n = 2     # Hill coefficient
+    mu = 0.1    # Degradation rate
+    
+    # Define the system of ODEs
+    def toggle_switch(t, y):
+        a, b = y
+        da_dt = a_m / (1 + (b / p_0)**n) - mu * a
+        db_dt = a_m / (1 + (a / p_0)**n) - mu * b
+        return [da_dt, db_dt]
+    
+    # Initial conditions
+    a0 = 1.1
+    # a0 = 0.1
+    b0 = 0.9    # b0 = 10
+    initial_conditions = [a0, b0]
+    
+    # Time span for the simulation
+    t_span = (0, 1000)  # From 0 to 50 time units
+    t_eval = np.linspace(t_span[0], t_span[1], 500)  # Points at which to store the solution
+    
+    # Solve the ODEs
+    solution = scipy.integrate.solve_ivp(toggle_switch, t_span, initial_conditions, t_eval=t_eval)
+    
+    # Extract the solution
+    t = solution.t
+    a = solution.y[0]
+    b = solution.y[1]
+    
+    # Plot the results
+    plt.figure(figsize=(3.3,2.0), constrained_layout = True) 
+    plt.plot(t, a, label='a', linewidth=2)
+    plt.plot(t, b, label='b', ls = '--', linewidth=2)
+    plt.xlabel('Time')
+    plt.ylabel('Concentration')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(read_directory,'plots_review','toggle_switch_deterministic.pdf'))
+
+def plot_toggle_switch_CLE():
+    read_directory = os.path.join(os.path.dirname(__file__),'paper_plots_mean-std-power-spectrum') 
+    trajectory = toggle_switch.generate_langevin_trajectory( duration = 10000,
+                                    repression_threshold = 3,
+                                    hill_coefficient = 2,
+                                    degradation_rate = 0.1,
+                                    basal_transcription_rate = 1,
+                                    switching_rate = 1,
+                                    system_size = 100,
+                                    initial_a = 1,
+                                    initial_b = 1,
+                                    equilibration_time = 0.0,
+                                    delta_t = 0.001)
+                                    # sampling_timestep = 1)
+    window_size = 100
+    time_average_a = np.convolve(trajectory[:,1], np.ones(window_size) / window_size, mode='same')
+ 
+    plt.figure(figsize=(3.3,2.0), constrained_layout = True) 
+    plt.plot(trajectory[:,0], trajectory[:,1], label = 'A')
+    plt.plot(trajectory[:,0], trajectory[:,2], label = 'B')
+    plt.plot(trajectory[:,0], time_average_a, label = 'slide')
+    plt.xlabel('Time (a.u)')
+    plt.ylim(0,11)
+    plt.ylabel('Concentration (a.u)')
+    plt.legend()
+    plt.savefig(os.path.join(read_directory,'plots_review','toggle_switch_CLE.pdf'))
+
+def get_waiting_times_in_top_state(trajectory):
+    
+    # Assume `data` is your array with columns: time, A, B
+    # data = np.array([...])  # Replace with your actual data
+
+    # Identify the times when the state (A on, B off) is satisfied
+    window_size = 100
+    time_average_a = np.convolve(trajectory[:,1], np.ones(window_size) / window_size, mode='same')
+    time_average_b = np.convolve(trajectory[:,2], np.ones(window_size) / window_size, mode='same')
+    state_active = np.logical_and(time_average_a > 4 , time_average_b < 4)
+
+    # Find the indices where the state changes
+    state_changes = np.diff(state_active.astype(int))
+    state_start_indices = np.where(state_changes == 1)[0]
+    state_end_indices = np.where(state_changes == -1)[0]
+
+    # Handle the case where the state is active at the end of the simulation
+    if state_active[-1]:
+        state_end_indices = np.append(state_end_indices, len(trajectory) - 1)
+    if state_active[0]:
+        state_start_indices = np.insert(state_start_indices, 0, 0, axis=0)
+
+    # Calculate waiting times as differences between start and end times
+    waiting_times = trajectory[state_end_indices, 0] - trajectory[state_start_indices, 0]
+    return waiting_times
+
+def compare_langevin_gillespie():
+    # simulate a long langevin trajectory
+    # simulate a long gillespie trajectory
+    # make an figure panel of A stationary distribution in both
+    # make a figure panel of top waiting time distributions in both
+    langevin_trajectory = toggle_switch.generate_langevin_trajectory( duration = 1000000,
+                                    repression_threshold = 3,
+                                    hill_coefficient = 2,
+                                    degradation_rate = 0.1,
+                                    basal_transcription_rate = 1,
+                                    switching_rate = 1,
+                                    system_size = 100,
+                                    initial_a = 1,
+                                    initial_b = 1,
+                                    equilibration_time = 0.0,
+                                    sampling_timestep = 10)
+                                    # sampling_timestep = 1)
+
+    gillespie_trajectory = toggle_switch.generate_langevin_trajectory( duration = 1000000,
+                                    repression_threshold = 3,
+                                    hill_coefficient = 2,
+                                    degradation_rate = 0.1,
+                                    basal_transcription_rate = 1,
+                                    switching_rate = 1,
+                                    system_size = 100,
+                                    initial_a = 1,
+                                    initial_b = 1,
+                                    equilibration_time = 0.0,
+                                    delta_t = 0.01,
+                                    sampling_timestep = 10)
+                                    # sampling_timestep = 1)
+    
+    gillespie_waiting_times = get_waiting_times_in_top_state(gillespie_trajectory)
+    langevin_waiting_times = get_waiting_times_in_top_state(langevin_trajectory)
+    print('number of gillespie waiting times is')
+    print(len(gillespie_waiting_times))
+    print('number of langevin waiting times is')
+    print(len(langevin_waiting_times))
+ 
+    plt.figure(figsize=(3.3,2.0), constrained_layout = True) 
+    plt.subplot(121)
+    plt.hist(langevin_trajectory[:,1],alpha =0.5, label = 'Langevin', density = True)
+    plt.hist(gillespie_trajectory[:,1],alpha =0.5, label = 'Gillespie', density = True)
+    plt.xlabel('Concentration')
+    plt.ylabel('Probability density')
+    plt.subplot(122)
+    plt.hist(langevin_waiting_times, alpha =0.5, label = 'Langevin')
+    plt.hist(gillespie_waiting_times, alpha =0.5, label = 'Gillespie')
+    # plt.hist(langevin_waiting_times, range = (0,1000), alpha =0.5, label = 'Langevin')
+    # plt.hist(gillespie_waiting_times,  range = (0,1000), alpha =0.5, label = 'Gillespie')
+    # plt.xlim(0,1000)
+    plt.xlabel('Waiting time')
+    plt.ylabel('Probability density')
+    plt.legend()
+    read_directory = os.path.join(os.path.dirname(__file__),'paper_plots_mean-std-power-spectrum') 
+    plt.savefig(os.path.join(read_directory,'plots_review','toggle_comparison.pdf'))
+
+def illustrate_switching_effect():
+    read_directory = os.path.join(os.path.dirname(__file__),'paper_plots_mean-std-power-spectrum') 
+    trajectory_no_toggle_langevin = toggle_switch.generate_langevin_trajectory( duration = 10000,
+                                    repression_threshold = 3,
+                                    hill_coefficient = 2,
+                                    degradation_rate = 0.1,
+                                    basal_transcription_rate = 1,
+                                    switching_rate = 100,
+                                    system_size = 100,
+                                    initial_a = 1,
+                                    initial_b = 1,
+                                    equilibration_time = 0.0,
+                                    delta_t = 0.001)
+                                    # sampling_timestep = 1)
+
+    trajectory_no_toggle_gillespie = toggle_switch.generate_langevin_trajectory( duration = 10000,
+                                    repression_threshold = 3,
+                                    hill_coefficient = 2,
+                                    degradation_rate = 0.1,
+                                    basal_transcription_rate = 1,
+                                    switching_rate = 100,
+                                    system_size = 100,
+                                    initial_a = 1,
+                                    initial_b = 1,
+                                    equilibration_time = 0.0,
+                                    delta_t = 0.001)
+                                    # sampling_timestep = 1)
+ 
+    trajectory_w_toggle_langevin = toggle_switch.generate_langevin_trajectory( duration = 10000,
+                                    repression_threshold = 3,
+                                    hill_coefficient = 2,
+                                    degradation_rate = 0.1,
+                                    basal_transcription_rate = 1,
+                                    switching_rate = 1,
+                                    system_size = 100,
+                                    initial_a = 1,
+                                    initial_b = 1,
+                                    equilibration_time = 0.0,
+                                    delta_t = 0.001)
+                                    # sampling_timestep = 1)
+
+    trajectory_w_toggle_gillespie = toggle_switch.generate_langevin_trajectory( duration = 10000,
+                                    repression_threshold = 3,
+                                    hill_coefficient = 2,
+                                    degradation_rate = 0.1,
+                                    basal_transcription_rate = 1,
+                                    switching_rate = 1,
+                                    system_size = 100,
+                                    initial_a = 1,
+                                    initial_b = 1,
+                                    equilibration_time = 0.0,
+                                    delta_t = 0.001)
+                                    # sampling_timestep = 1)
+ 
+    plt.figure(figsize=(6.6,4.0), constrained_layout = True) 
+    plt.subplot(221)
+    plt.plot(trajectory_no_toggle_gillespie[:,0], trajectory_no_toggle_gillespie[:,1], label = 'A')
+    plt.plot(trajectory_no_toggle_gillespie[:,0], trajectory_no_toggle_gillespie[:,2], label = 'B')
+    plt.xlabel('Time (a.u)')
+    plt.ylabel('Concentration (a.u)')
+    plt.title('$\lambda = 100$, Gillespie')
+    plt.ylim(0,11)
+    plt.subplot(222)
+    plt.plot(trajectory_no_toggle_langevin[:,0], trajectory_no_toggle_langevin[:,1], label = 'A')
+    plt.plot(trajectory_no_toggle_langevin[:,0], trajectory_no_toggle_langevin[:,2], label = 'B')
+    plt.xlabel('Time (a.u)')
+    plt.ylabel('Concentration (a.u)')
+    plt.title('$\lambda = 100$, Langevin')
+    plt.ylim(0,11)
+    plt.subplot(223)
+    plt.plot(trajectory_w_toggle_gillespie[:,0], trajectory_w_toggle_gillespie[:,1], label = 'A')
+    plt.plot(trajectory_w_toggle_gillespie[:,0], trajectory_w_toggle_gillespie[:,2], label = 'B')
+    plt.xlabel('Time (a.u)')
+    plt.ylabel('Concentration (a.u)')
+    plt.title('$\lambda = 1$, Gillespie')
+    plt.ylim(0,11)
+    plt.subplot(224)
+    plt.plot(trajectory_w_toggle_langevin[:,0], trajectory_w_toggle_langevin[:,1], label = 'A')
+    plt.plot(trajectory_w_toggle_langevin[:,0], trajectory_w_toggle_langevin[:,2], label = 'B')
+    plt.xlabel('Time (a.u)')
+    plt.ylabel('Concentration (a.u)')
+    plt.title('$\lambda = 1$, Langevin')
+    plt.ylim(0,11)
+    plt.legend()
+    plt.savefig(os.path.join(read_directory,'plots_review','toggle_illustration.pdf'))
 
 if __name__ == "__main__":
     # make_noise_comparison_figure()
@@ -1366,5 +1628,11 @@ if __name__ == "__main__":
     # make_approximation_comparison_figure_reviewer_switching()
     # compute_power_spectrum_data()
     # plot_power_spectrum_data()
-    compute_power_spectrum_data_review()
-    plot_power_spectrum_data_review()
+    # compute_power_spectrum_data_review()
+    # plot_power_spectrum_data_review()
+    # plot_toggle_switch_gillespie()
+    # plot_toggle_switch_ODE()
+    # plot_toggle_switch_CLE()
+    # compare_langevin_gillespie()
+    illustrate_switching_effect()
+    

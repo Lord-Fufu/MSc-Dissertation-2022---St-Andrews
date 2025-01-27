@@ -509,7 +509,7 @@ def compute_power_spectrum_data():
     j=-1
     k=0
     
-    valueOfLambda = 10
+    valueOfLambda = 100
     valueOfOmega = 100
     valueOfTau = 33
     # valueOfLambda = 0.1
@@ -793,8 +793,6 @@ def plot_power_spectrum_data():
     # ax1.set_ylabel('Power') 
     ax1.set_ylabel('$S_p(\omega)$') 
     
-    
-    
     freq_th,Sm,Sp=utils.lna_power_spectrum(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
                                                     h=h,
                                                     P_0=P_0,
@@ -820,8 +818,6 @@ def plot_power_spectrum_data():
     
     plt.savefig(os.path.join(read_directory,'plots','lpowerSpectrum-lambda'+str(valueOfLambda)[0:4]+'-Omega'+ str(valueOfOmega)
                                                                                   +'-tau'+ str(valueOfTau)  +'.pdf'))  
-    plt.show()
-    
     # # Plotting mean & STD
     
     val_lambda=pd.read_csv(os.path.join(read_directory,'data','lambda.csv'))['value'].values
@@ -886,7 +882,6 @@ def plot_power_spectrum_data():
     
     
     plt.savefig(os.path.join(read_directory ,'plots','std-plots-Omega' + str(val_Omega[j]) + '-tau' + str(val_tau[k]) + '.pdf'))
-    plt.show()
     
     arr_rel_Pl = abs(arr_std_Pm - arr_std_Pl)/arr_std_Pm
     arr_rel_Plna = abs(arr_std_Pm - arr_std_Plna)/arr_std_Pm
@@ -918,7 +913,6 @@ def plot_power_spectrum_data():
     fig.text(0.01, 0.9, 'B', size=9, weight='bold')
     
     plt.savefig(os.path.join(read_directory,'plots','error-std-plots-Omega' + str(val_Omega[j]) + '-tau' + str(val_tau[k]) + '.pdf'))
-    plt.show()
     
 def compute_power_spectrum_data_review():
     delta_t = 0.01
@@ -1232,8 +1226,6 @@ def plot_power_spectrum_data_review():
     # ax1.set_ylabel('Power') 
     ax1.set_ylabel('$S_p(\omega)$') 
     
-    
-    
     freq_th,Sm,Sp=reviewer.lna_power_spectrum(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
                                                     h=h,
                                                     P_0=P_0,
@@ -1254,12 +1246,11 @@ def plot_power_spectrum_data_review():
     ax1.legend([linem, linel, linelna, linet], ['Full model', 'CLE', 'LNA', 'LNA theory'], fontsize = 8)
     
     ax1.set_xlim(0, 0.12)
-    ax1.set_ylim(10**5, 3*10**9)
+    # ax1.set_ylim(10**5, 3*10**9)
     
     
     plt.savefig(os.path.join(read_directory,'plots_review','lpowerSpectrum-lambda'+str(valueOfLambda)[0:4]+'-Omega'+ str(valueOfOmega)
                                                                                   +'-tau'+ str(valueOfTau)  +'.pdf'))  
-    plt.show()
     
     # # Plotting mean & STD
     
@@ -1325,7 +1316,6 @@ def plot_power_spectrum_data_review():
     
     
     plt.savefig(os.path.join(read_directory ,'plots_review','std-plots-Omega' + str(val_Omega[j]) + '-tau' + str(val_tau[k]) + '.pdf'))
-    plt.show()
     
     arr_rel_Pl = abs(arr_std_Pm - arr_std_Pl)/arr_std_Pm
     arr_rel_Plna = abs(arr_std_Pm - arr_std_Plna)/arr_std_Pm
@@ -1357,7 +1347,6 @@ def plot_power_spectrum_data_review():
     fig.text(0.01, 0.9, 'B', size=9, weight='bold')
     
     plt.savefig(os.path.join(read_directory,'plots_review','error-std-plots-Omega' + str(val_Omega[j]) + '-tau' + str(val_tau[k]) + '.pdf'))
-    plt.show()
 
 def plot_toggle_switch_gillespie():
     read_directory = os.path.join(os.path.dirname(__file__),'paper_plots_mean-std-power-spectrum') 
@@ -1629,10 +1618,10 @@ if __name__ == "__main__":
     # compute_power_spectrum_data()
     # plot_power_spectrum_data()
     # compute_power_spectrum_data_review()
-    # plot_power_spectrum_data_review()
+    plot_power_spectrum_data_review()
     # plot_toggle_switch_gillespie()
     # plot_toggle_switch_ODE()
     # plot_toggle_switch_CLE()
     # compare_langevin_gillespie()
-    illustrate_switching_effect()
+    # illustrate_switching_effect()
     

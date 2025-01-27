@@ -509,7 +509,7 @@ def compute_power_spectrum_data():
     j=-1
     k=0
     
-    valueOfLambda = 100
+    valueOfLambda = 10
     valueOfOmega = 100
     valueOfTau = 33
     # valueOfLambda = 0.1
@@ -942,7 +942,7 @@ def compute_power_spectrum_data_review():
     j=-1
     k=0
     
-    valueOfLambda = 10
+    valueOfLambda = 100
     valueOfOmega = 100
     valueOfTau = 33
     # valueOfLambda = 0.1

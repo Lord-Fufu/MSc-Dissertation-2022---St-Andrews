@@ -110,7 +110,7 @@ def make_noise_comparison_figure():
     
     
     
-    ax[1].set_ylabel('$P(t)$/1e4')
+    ax[1].set_ylabel('$P(t)$ /(1e4 cu)')
     # ax[1].set_ylim(50000,70000)
     ax[1].set_ylim(20000,160000)
     # ax[1].set_yticks([55000, 60000, 65000])
@@ -217,7 +217,7 @@ def make_approximation_comparison_figure():
     ax[0].set_yticklabels(['5.5', '6.0', '6.5'])  # Set y-axis tick labels manually
     
     
-    ax[1].set_ylabel('$P(t)$/1e4') 
+    ax[1].set_ylabel('$P(t)$ /(1e4 cu)') 
     
     # ax[1].set_ylim(20000,160000)
     # ax[1].set_yticks([50000, 100000, 150000])
@@ -332,7 +332,7 @@ def make_noise_comparison_figure_reviewer_switching():
     
     
     
-    ax[1].set_ylabel('$P(t)$/1e4')
+    ax[1].set_ylabel('$P(t)$ /(1e4 cu)')
     # ax[1].set_ylim(50000,70000)
     ax[1].set_ylim(20000,160000)
     # ax[1].set_yticks([55000, 60000, 65000])
@@ -439,7 +439,7 @@ def make_approximation_comparison_figure_reviewer_switching():
     ax[0].set_yticklabels(['5.5', '6.0', '6.5'])  # Set y-axis tick labels manually
     
     
-    ax[1].set_ylabel('$P(t)$/1e4') 
+    ax[1].set_ylabel('$P(t)$ /(1e4 cu)') 
     
     # ax[1].set_ylim(20000,160000)
     # ax[1].set_yticks([50000, 100000, 150000])
@@ -791,7 +791,7 @@ def plot_power_spectrum_data():
     # ax1.set_xlabel('Angular frequency') 
     ax1.set_xlabel('$\omega$ $/\mathrm{min}^{-1}$') 
     # ax1.set_ylabel('Power') 
-    ax1.set_ylabel('$S_p(\omega)$') 
+    ax1.set_ylabel('$S_p(\omega)$ /$(\mathrm{cu}^2\mathrm{min})$') 
     
     freq_th,Sm,Sp=utils.lna_power_spectrum(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
                                                     h=h,
@@ -861,7 +861,7 @@ def plot_power_spectrum_data():
     ax1 = plt.gca()
     
     ax1.set_xlabel('$\lambda$ $/\mathrm{min}^{-1}$') 
-    ax1.set_ylabel('$\Sigma_P$')
+    ax1.set_ylabel('$\Sigma_P~/\mathrm{cu}$')
     
     straight_line = 3e3/np.sqrt(val_lambda)
     
@@ -1224,7 +1224,7 @@ def plot_power_spectrum_data_review():
     # ax1.set_xlabel('Angular frequency') 
     ax1.set_xlabel('$\omega$ $/\mathrm{min}^{-1}$') 
     # ax1.set_ylabel('Power') 
-    ax1.set_ylabel('$S_p(\omega)$') 
+    ax1.set_ylabel('$S_p(\omega)~/(\mathrm{cu}^2\mathrm{min})$') 
     
     freq_th,Sm,Sp=reviewer.lna_power_spectrum(alpha_m=alpha_m, alpha_p=alpha_p, mu_m=mu_m, mu_p=mu_p,
                                                     h=h,
@@ -1467,7 +1467,7 @@ def get_waiting_times_in_top_state(trajectory):
     waiting_times = trajectory[state_end_indices, 0] - trajectory[state_start_indices, 0]
     return waiting_times
 
-def compare_langevin_gillespie():
+def compare_langevin_gillespie_toggle():
     # simulate a long langevin trajectory
     # simulate a long gillespie trajectory
     # make an figure panel of A stationary distribution in both
@@ -1505,22 +1505,55 @@ def compare_langevin_gillespie():
     print(len(gillespie_waiting_times))
     print('number of langevin waiting times is')
     print(len(langevin_waiting_times))
+    
+    print('mean of A molecules gillespie')
+    print(np.mean(gillespie_trajectory[:,1]))
+    print('mean of A molecules Langevin')
+    print(np.mean(langevin_trajectory[:,1]))
+    print('relative difference')
+    print(np.abs(np.mean(langevin_trajectory[:,1]) - np.mean(gillespie_trajectory[:,1])/
+          np.mean(gillespie_trajectory[:,1])))
+    print('variance of A molecules gillespie')
+    print(np.std(gillespie_trajectory[:,1]))
+    print('variance of A molecules Langevin')
+    print(np.std(langevin_trajectory[:,1]))
+    print(np.abs(np.std(langevin_trajectory[:,1]) - np.std(gillespie_trajectory[:,1])/
+          np.std(gillespie_trajectory[:,1])))
  
-    plt.figure(figsize=(3.3,2.0), constrained_layout = True) 
+    print('mean of waiting times gillespie')
+    print(np.mean(gillespie_waiting_times))
+    print('mean of waiting times Langevin')
+    print(np.mean(langevin_waiting_times))
+    print('relative difference')
+    print(np.abs(np.mean(langevin_waiting_times) - np.mean(gillespie_waiting_times))/
+          np.mean(gillespie_waiting_times))
+
+    print('std of waiting times gillespie')
+    print(np.std(gillespie_waiting_times))
+    print('std of waiting times Langevin')
+    print(np.std(langevin_waiting_times))
+    print('relative difference')
+    print(np.abs(np.std(langevin_waiting_times) - np.std(gillespie_waiting_times))/
+          np.std(gillespie_waiting_times))
+
+
+    fig = plt.figure(figsize=(6.6,2.0), constrained_layout = True) 
     plt.subplot(121)
-    plt.hist(langevin_trajectory[:,1],alpha =0.5, label = 'Langevin', density = True)
-    plt.hist(gillespie_trajectory[:,1],alpha =0.5, label = 'Gillespie', density = True)
-    plt.xlabel('Concentration')
-    plt.ylabel('Probability density')
+    plt.hist(langevin_trajectory[:,1],alpha =0.5, label = 'Langevin', density = True, bins = 20)
+    plt.hist(gillespie_trajectory[:,1],alpha =0.5, label = 'Gillespie', density = True, bins = 20)
+    plt.xlabel('Concentration /cu')
+    plt.ylabel('Probability density /$\mathrm{cu}^{-1}$')
     plt.subplot(122)
-    plt.hist(langevin_waiting_times, alpha =0.5, label = 'Langevin')
-    plt.hist(gillespie_waiting_times, alpha =0.5, label = 'Gillespie')
+    plt.hist(langevin_waiting_times, alpha =0.5, label = 'Langevin', bins = 20, density = True)
+    plt.hist(gillespie_waiting_times, alpha =0.5, label = 'Gillespie', bins = 20, density = True)
     # plt.hist(langevin_waiting_times, range = (0,1000), alpha =0.5, label = 'Langevin')
     # plt.hist(gillespie_waiting_times,  range = (0,1000), alpha =0.5, label = 'Gillespie')
     # plt.xlim(0,1000)
-    plt.xlabel('Waiting time')
-    plt.ylabel('Probability density')
+    plt.xlabel('Waiting time /min')
+    plt.ylabel('Probability density /$\mathrm{min}^{-1}$')
     plt.legend()
+    fig.text(0.02,0.95,'A',size=9,weight='bold')
+    fig.text(0.52,0.95,'B',size=9,weight='bold')
     read_directory = os.path.join(os.path.dirname(__file__),'paper_plots_mean-std-power-spectrum') 
     plt.savefig(os.path.join(read_directory,'plots_review','toggle_comparison.pdf'))
 
@@ -1578,50 +1611,79 @@ def illustrate_switching_effect():
                                     delta_t = 0.001)
                                     # sampling_timestep = 1)
  
-    plt.figure(figsize=(6.6,4.0), constrained_layout = True) 
+    fig = plt.figure(figsize=(6.6,4.0), constrained_layout = True) 
     plt.subplot(221)
     plt.plot(trajectory_no_toggle_gillespie[:,0], trajectory_no_toggle_gillespie[:,1], label = 'A')
     plt.plot(trajectory_no_toggle_gillespie[:,0], trajectory_no_toggle_gillespie[:,2], label = 'B')
-    plt.xlabel('Time (a.u)')
-    plt.ylabel('Concentration (a.u)')
-    plt.title('$\lambda = 100$, Gillespie')
+    plt.xlabel('$t$ /min')
+    plt.ylabel('Concentration /cu')
+    plt.title('$\lambda = 100$, Gillespie', fontsize = 8)
     plt.ylim(0,11)
     plt.subplot(222)
-    plt.plot(trajectory_no_toggle_langevin[:,0], trajectory_no_toggle_langevin[:,1], label = 'A')
-    plt.plot(trajectory_no_toggle_langevin[:,0], trajectory_no_toggle_langevin[:,2], label = 'B')
-    plt.xlabel('Time (a.u)')
-    plt.ylabel('Concentration (a.u)')
-    plt.title('$\lambda = 100$, Langevin')
-    plt.ylim(0,11)
-    plt.subplot(223)
     plt.plot(trajectory_w_toggle_gillespie[:,0], trajectory_w_toggle_gillespie[:,1], label = 'A')
     plt.plot(trajectory_w_toggle_gillespie[:,0], trajectory_w_toggle_gillespie[:,2], label = 'B')
-    plt.xlabel('Time (a.u)')
-    plt.ylabel('Concentration (a.u)')
-    plt.title('$\lambda = 1$, Gillespie')
+    plt.xlabel('$t$ /min')
+    plt.ylabel('Concentration /cu')
+    plt.title('$\lambda = 1$, Gillespie', fontsize = 8)
+    plt.ylim(0,11)
+    plt.subplot(223)
+    plt.plot(trajectory_no_toggle_langevin[:,0], trajectory_no_toggle_langevin[:,1], label = 'A')
+    plt.plot(trajectory_no_toggle_langevin[:,0], trajectory_no_toggle_langevin[:,2], label = 'B')
+    plt.xlabel('$t$ /min')
+    plt.ylabel('Concentration /cu')
+    plt.title('$\lambda = 100$, Langevin', fontsize = 8)
     plt.ylim(0,11)
     plt.subplot(224)
     plt.plot(trajectory_w_toggle_langevin[:,0], trajectory_w_toggle_langevin[:,1], label = 'A')
     plt.plot(trajectory_w_toggle_langevin[:,0], trajectory_w_toggle_langevin[:,2], label = 'B')
-    plt.xlabel('Time (a.u)')
-    plt.ylabel('Concentration (a.u)')
-    plt.title('$\lambda = 1$, Langevin')
+    plt.xlabel('$t$ /min')
+    plt.ylabel('Concentration /cu')
+    plt.title('$\lambda = 1$, Langevin', fontsize = 8)
     plt.ylim(0,11)
     plt.legend()
+    fig.text(0.02,0.95,'A',size=9,weight='bold')
+    fig.text(0.52,0.95,'B',size=9,weight='bold')
+    fig.text(0.02,0.45,'C',size=9,weight='bold')
+    fig.text(0.52,0.45,'D',size=9,weight='bold')
     plt.savefig(os.path.join(read_directory,'plots_review','toggle_illustration.pdf'))
 
 if __name__ == "__main__":
+    ## Figure 2 of the revised manuscript
     # make_noise_comparison_figure()
+
+    ## Figure 3A of the revised manuscript
     # make_approximation_comparison_figure()
-    # make_noise_comparison_figure_reviewer_switching()
-    # make_approximation_comparison_figure_reviewer_switching()
+
+    ## Generate data for figure 3B and figure 4 of the revised manuscript
     # compute_power_spectrum_data()
+
+    ## Figure 3B and figure 4 of the revised manuscript
     # plot_power_spectrum_data()
+    
+    ## Figure 5 can be generated using the scripts 
+    ## generate_data_for_heatmap_plot.py and
+    ## plot_heatmap_from_data.py
+
+    ## Figure 7 of the revised manuscript
+    # illustrate_switching_effect()
+
+    ## Figure 8 of the revised manuscript
+    # compare_langevin_gillespie_toggle()
+
+    ## Figure SF1 of the revised manuscript
+    # make_noise_comparison_figure_reviewer_switching()
+    
+    ## Figure SF2A of the revised manuscript
+    # make_approximation_comparison_figure_reviewer_switching()
+
+    ## generate data for figure SF2B
     # compute_power_spectrum_data_review()
+    
+    ## Figure SF2B of the revised manuscript
     plot_power_spectrum_data_review()
+
+    ## old and redundant figures
     # plot_toggle_switch_gillespie()
     # plot_toggle_switch_ODE()
     # plot_toggle_switch_CLE()
-    # compare_langevin_gillespie()
-    # illustrate_switching_effect()
     

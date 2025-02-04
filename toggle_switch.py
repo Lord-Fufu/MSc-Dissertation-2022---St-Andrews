@@ -96,10 +96,11 @@ def generate_langevin_trajectory( duration = 720,
     trace[:,0] -= equilibration_time
 
     # ensure we only sample every minute in the final trace
-    if delta_t>=1.0:
-        sampling_timestep_multiple = 1
-    else:
-        sampling_timestep_multiple = int(round(sampling_timestep/delta_t))
+    # if delta_t>=1.0:
+        # sampling_timestep_multiple = 1
+    # else:
+        # sampling_timestep_multiple = int(round(sampling_timestep/delta_t))
+    sampling_timestep_multiple = int(round(sampling_timestep/delta_t))
 
     trace_to_return = trace[::sampling_timestep_multiple]
 

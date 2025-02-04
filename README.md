@@ -6,7 +6,7 @@ This repository includes the simulation code Antoine wrote for his Master Thesis
 
 The files are organised as follows:
 
-- `timeseries_figure_file_reorganised.py' contains code to generate all figures and supplementary figures of the revised manuscript, except for figure 5
+- `timeseries_figure_file_reorganised.py` contains code to generate all figures and supplementary figures of the revised manuscript, except for figure 5
 
 - `generate_data_for_heatmap_plot.py` contains code to generate the data in figure 5 of the manuscript.
 

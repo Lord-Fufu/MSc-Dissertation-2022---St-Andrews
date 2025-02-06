@@ -1472,7 +1472,7 @@ def compare_langevin_gillespie_toggle():
     # simulate a long gillespie trajectory
     # make an figure panel of A stationary distribution in both
     # make a figure panel of top waiting time distributions in both
-    langevin_trajectory = toggle_switch.generate_langevin_trajectory( duration = 1000000,
+    langevin_trajectory = toggle_switch.generate_langevin_trajectory( duration = 100000000,
                                     repression_threshold = 3,
                                     hill_coefficient = 2,
                                     degradation_rate = 0.1,
@@ -1485,7 +1485,7 @@ def compare_langevin_gillespie_toggle():
                                     sampling_timestep = 10)
                                     # sampling_timestep = 1)
 
-    gillespie_trajectory = toggle_switch.generate_langevin_trajectory( duration = 1000000,
+    gillespie_trajectory = toggle_switch.generate_stochastic_trajectory( duration = 100000000,
                                     repression_threshold = 3,
                                     hill_coefficient = 2,
                                     degradation_rate = 0.1,
@@ -1495,7 +1495,6 @@ def compare_langevin_gillespie_toggle():
                                     initial_a = 1,
                                     initial_b = 1,
                                     equilibration_time = 0.0,
-                                    delta_t = 0.01,
                                     sampling_timestep = 10)
                                     # sampling_timestep = 1)
     
@@ -1511,14 +1510,14 @@ def compare_langevin_gillespie_toggle():
     print('mean of A molecules Langevin')
     print(np.mean(langevin_trajectory[:,1]))
     print('relative difference')
-    print(np.abs(np.mean(langevin_trajectory[:,1]) - np.mean(gillespie_trajectory[:,1])/
-          np.mean(gillespie_trajectory[:,1])))
+    print(np.abs(np.mean(langevin_trajectory[:,1]) - np.mean(gillespie_trajectory[:,1]))/
+          np.mean(gillespie_trajectory[:,1]))
     print('variance of A molecules gillespie')
     print(np.std(gillespie_trajectory[:,1]))
     print('variance of A molecules Langevin')
     print(np.std(langevin_trajectory[:,1]))
-    print(np.abs(np.std(langevin_trajectory[:,1]) - np.std(gillespie_trajectory[:,1])/
-          np.std(gillespie_trajectory[:,1])))
+    print(np.abs(np.std(langevin_trajectory[:,1]) - np.std(gillespie_trajectory[:,1]))/
+          np.std(gillespie_trajectory[:,1]))
  
     print('mean of waiting times gillespie')
     print(np.mean(gillespie_waiting_times))
@@ -1572,7 +1571,7 @@ def illustrate_switching_effect():
                                     delta_t = 0.001)
                                     # sampling_timestep = 1)
 
-    trajectory_no_toggle_gillespie = toggle_switch.generate_langevin_trajectory( duration = 10000,
+    trajectory_no_toggle_gillespie = toggle_switch.generate_stochastic_trajectory( duration = 10000,
                                     repression_threshold = 3,
                                     hill_coefficient = 2,
                                     degradation_rate = 0.1,
@@ -1581,8 +1580,8 @@ def illustrate_switching_effect():
                                     system_size = 100,
                                     initial_a = 1,
                                     initial_b = 1,
-                                    equilibration_time = 0.0,
-                                    delta_t = 0.001)
+                                    equilibration_time = 0.0
+                                    )
                                     # sampling_timestep = 1)
  
     trajectory_w_toggle_langevin = toggle_switch.generate_langevin_trajectory( duration = 10000,
@@ -1598,7 +1597,7 @@ def illustrate_switching_effect():
                                     delta_t = 0.001)
                                     # sampling_timestep = 1)
 
-    trajectory_w_toggle_gillespie = toggle_switch.generate_langevin_trajectory( duration = 10000,
+    trajectory_w_toggle_gillespie = toggle_switch.generate_stochastic_trajectory( duration = 10000,
                                     repression_threshold = 3,
                                     hill_coefficient = 2,
                                     degradation_rate = 0.1,
@@ -1607,8 +1606,7 @@ def illustrate_switching_effect():
                                     system_size = 100,
                                     initial_a = 1,
                                     initial_b = 1,
-                                    equilibration_time = 0.0,
-                                    delta_t = 0.001)
+                                    equilibration_time = 0.0)
                                     # sampling_timestep = 1)
  
     fig = plt.figure(figsize=(6.6,4.0), constrained_layout = True) 
@@ -1668,7 +1666,7 @@ if __name__ == "__main__":
     # illustrate_switching_effect()
 
     ## Figure 8 of the revised manuscript
-    # compare_langevin_gillespie_toggle()
+    compare_langevin_gillespie_toggle()
 
     ## Figure SF1 of the revised manuscript
     # make_noise_comparison_figure_reviewer_switching()
@@ -1680,7 +1678,7 @@ if __name__ == "__main__":
     # compute_power_spectrum_data_review()
     
     ## Figure SF2B of the revised manuscript
-    plot_power_spectrum_data_review()
+    # plot_power_spectrum_data_review()
 
     ## old and redundant figures
     # plot_toggle_switch_gillespie()

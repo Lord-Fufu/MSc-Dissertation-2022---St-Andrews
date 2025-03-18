@@ -1648,38 +1648,38 @@ def illustrate_switching_effect():
 
 if __name__ == "__main__":
     ## Figure 2 of the revised manuscript
-    # make_noise_comparison_figure()
+    make_noise_comparison_figure()
 
     ## Figure 3A of the revised manuscript
-    # make_approximation_comparison_figure()
+    make_approximation_comparison_figure()
 
     ## Generate data for figure 3B and figure 4 of the revised manuscript
-    # compute_power_spectrum_data()
+    compute_power_spectrum_data()
 
     ## Figure 3B and figure 4 of the revised manuscript
-    # plot_power_spectrum_data()
+    plot_power_spectrum_data()
     
     ## Figure 5 can be generated using the scripts 
     ## generate_data_for_heatmap_plot.py and
     ## plot_heatmap_from_data.py
 
     ## Figure 7 of the revised manuscript
-    # illustrate_switching_effect()
+    illustrate_switching_effect()
 
     ## Figure 8 of the revised manuscript
     compare_langevin_gillespie_toggle()
 
     ## Figure SF1 of the revised manuscript
-    # make_noise_comparison_figure_reviewer_switching()
+    make_noise_comparison_figure_reviewer_switching()
     
     ## Figure SF2A of the revised manuscript
-    # make_approximation_comparison_figure_reviewer_switching()
+    make_approximation_comparison_figure_reviewer_switching()
 
     ## generate data for figure SF2B
-    # compute_power_spectrum_data_review()
+    compute_power_spectrum_data_review()
     
     ## Figure SF2B of the revised manuscript
-    # plot_power_spectrum_data_review()
+    plot_power_spectrum_data_review()
 
     ## old and redundant figures
     # plot_toggle_switch_gillespie()

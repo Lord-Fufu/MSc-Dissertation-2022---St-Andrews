@@ -1,12 +1,10 @@
-# MSc-Dissertation-2022---St-Andrews
+# Efficient approximations of transcriptional bursting effects on the dynamics of a gene regulatory network
 
-Authors: Antoine Moneyron and Jochen Kursawe
-
-This repository includes the simulation code Antoine wrote for his Master Thesis at the University of St Andrews (2022), as well as for our recent manuscript [link to be included].
+This repository includes all simulation code for our paper in the Journal of the Royal Society Interface "Efficient approximations of transcriptional bursting effects on the dynamics of a gene regulatory network"
 
 The files are organised as follows:
 
-- `timeseries_figure_file_reorganised.py` contains code to generate all figures and supplementary figures of the revised manuscript, except for figure 5
+- `run_all.py` contains code to generate all figures and supplementary figures of the revised manuscript, except for figure 5
 
 - `generate_data_for_heatmap_plot.py` contains code to generate the data in figure 5 of the manuscript.
 

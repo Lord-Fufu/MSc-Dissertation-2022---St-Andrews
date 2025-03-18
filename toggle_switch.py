@@ -49,9 +49,13 @@ def generate_langevin_trajectory( duration = 720,
         third column is number of B
     '''
     total_time = duration + equilibration_time
-    sample_times = np.arange(0, total_time, delta_t)
-    full_trace = np.zeros((len(sample_times), 3))
-    full_trace[:,0] = sample_times
+
+    sample_times = np.arange(equilibration_time, total_time, sampling_timestep)
+    trace = np.zeros((len(sample_times), 3))
+    trace[:,0] = sample_times
+    # sample_times = np.arange(0, total_time, delta_t)
+    # full_trace = np.zeros((len(sample_times), 3))
+    # full_trace[:,0] = sample_times
 
     repression_threshold = float(repression_threshold)
     # inital_condition
@@ -60,12 +64,19 @@ def generate_langevin_trajectory( duration = 720,
     next_a = current_a
     next_b = current_b
     
-    full_trace[0,1] = current_a
-    full_trace[0,2] = current_b
+    current_time = 0.0
+    
+    if current_time >= sample_times[0]:
+        trace[0,1] = current_a
+        trace[0,2] = current_b
+        sampling_index = 1
+    else:
+        sampling_index = 0
     # basal_transcription_rate*= system_size
     # repression_threshold*=system_size
     
-    for i, time in enumerate(sample_times[1:]):
+
+    while current_time < total_time:
         power_a = np.power(current_b/repression_threshold,hill_coefficient)
         hill_function_a = 1/(1+power_a)
         next_a += ((basal_transcription_rate*hill_function_a
@@ -87,25 +98,14 @@ def generate_langevin_trajectory( duration = 720,
         
         current_a = next_a
         current_b = next_b
+        current_time += delta_t
 
-        full_trace[i+1,1] = current_a
-        full_trace[i+1,2] = current_b
+        if sampling_index < len(sample_times) and current_time >= trace[sampling_index, 0]:
+            trace[ sampling_index, 1 ] = current_a
+            trace[ sampling_index, 2 ] = current_b
+            sampling_index += 1
 
-    # get rid of the equilibration time now
-    trace = full_trace[ full_trace[:,0]>=equilibration_time ]
-    trace[:,0] -= equilibration_time
-
-    # ensure we only sample every minute in the final trace
-    # if delta_t>=1.0:
-        # sampling_timestep_multiple = 1
-    # else:
-        # sampling_timestep_multiple = int(round(sampling_timestep/delta_t))
-    sampling_timestep_multiple = int(round(sampling_timestep/delta_t))
-
-    trace_to_return = trace[::sampling_timestep_multiple]
-
-
-    return trace_to_return
+    return trace
 
 @jit(nopython = True)
 def identify_reaction(random_number, base_propensity, propensities):

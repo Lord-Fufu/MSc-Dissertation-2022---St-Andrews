@@ -1482,6 +1482,7 @@ def compare_langevin_gillespie_toggle():
                                     initial_a = 1,
                                     initial_b = 1,
                                     equilibration_time = 0.0,
+                                    delta_t = 0.001,
                                     sampling_timestep = 10)
                                     # sampling_timestep = 1)
 

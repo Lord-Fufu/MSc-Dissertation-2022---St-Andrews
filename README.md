@@ -1,6 +1,6 @@
 # Efficient approximations of transcriptional bursting effects on the dynamics of a gene regulatory network
 
-This repository includes all simulation code for our paper in the Journal of the Royal Society Interface "Efficient approximations of transcriptional bursting effects on the dynamics of a gene regulatory network"
+This repository includes all simulation code for our paper in the Journal of the Royal Society Interface "Efficient approximations of transcriptional bursting effects on the dynamics of a gene regulatory network".
 
 The files are organised as follows:
 
